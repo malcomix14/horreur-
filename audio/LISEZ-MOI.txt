@@ -1,0 +1,7 @@
+Déposez ici vos propres sons pour remplacer les sons générés par le jeu.
+Le fichier doit porter exactement le nom du son : par exemple
+  audio/monster_scream.ogg
+  audio/heartbeat.wav
+  audio/drone_loop.ogg   (les sons *_loop, breath_*, clock_tick bouclent automatiquement)
+Formats acceptés : .ogg, .wav, .mp3. La liste complète des noms est dans le README.md.
+Si un fichier manque ou est illisible, le son procédural est utilisé : le jeu ne plante jamais.

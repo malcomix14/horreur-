@@ -1,0 +1,31 @@
+{
+	"_aide": "Screamers du jeu. mode = random (tirage aléatoire) ou trigger (déclenché par une action). effect = silhouette, face_flash, lights_out, bang, whisper, door_slam, footsteps_above, crawler, apparition, blackout_breath, house_scream, context (effet propre à l'objet : visual = mirror_face, portrait, doll_turn, falling_body, hand), sound_only. sound = nom d'un son (voir README). shake = secousse 0..1. flash = [r, g, b, a]. zones = room, corridor, hall, cellar.",
+	"settings": {
+		"start_delay": 100.0,
+		"random_check_interval": 8.0,
+		"random_chance": 0.16,
+		"min_gap_seconds": 75.0,
+		"trigger_min_gap": 12.0
+	},
+	"scares": [
+		{"id": "silhouette_couloir", "mode": "random", "effect": "silhouette", "sound": "sting_low", "volume": -4.0, "shake": 0.1, "duration": 3.5, "zones": ["corridor", "hall"], "weight": 1.4, "cooldown": 240, "max_uses": 3},
+		{"id": "lumieres_eteintes", "mode": "random", "effect": "lights_out", "sound": "", "shake": 0.05, "duration": 5.0, "zones": [], "weight": 1.0, "cooldown": 200, "max_uses": 4},
+		{"id": "coup_dans_le_mur", "mode": "random", "effect": "bang", "sound": "bang", "shake": 0.45, "zones": [], "weight": 1.0, "cooldown": 180, "max_uses": 4},
+		{"id": "murmure_dans_le_dos", "mode": "random", "effect": "whisper", "sound": "whisper_1", "shake": 0.08, "zones": [], "weight": 1.2, "cooldown": 150, "max_uses": 5},
+		{"id": "visage_dans_la_lampe", "mode": "random", "effect": "face_flash", "sound": "scream", "volume": 0.0, "shake": 0.8, "flash": [1.0, 1.0, 1.0, 0.35], "flash_time": 0.2, "zones": ["corridor", "room"], "weight": 0.5, "cooldown": 600, "max_uses": 1},
+		{"id": "porte_qui_claque", "mode": "random", "effect": "door_slam", "sound": "", "shake": 0.3, "zones": [], "weight": 1.0, "cooldown": 160, "max_uses": 4},
+		{"id": "pas_au_plafond", "mode": "random", "effect": "footsteps_above", "sound": "footsteps_above", "volume": -2.0, "shake": 0.2, "zones": ["room", "corridor"], "weight": 0.8, "cooldown": 300, "max_uses": 2},
+		{"id": "chose_qui_rampe", "mode": "random", "effect": "crawler", "sound": "sting_high", "volume": -6.0, "shake": 0.35, "zones": ["corridor", "hall", "room"], "weight": 0.7, "cooldown": 400, "max_uses": 2},
+		{"id": "carillon_soudain", "mode": "random", "effect": "sound_only", "sound": "clock_chime", "volume": -2.0, "shake": 0.1, "zones": ["hall", "corridor"], "weight": 0.5, "cooldown": 400, "max_uses": 1},
+
+		{"id": "miroir_salle_de_bain", "mode": "trigger", "trigger": "mirror_bath", "effect": "context", "visual": "mirror_face", "duration": 0.7, "sound": "scream", "shake": 0.8, "flash": [1.0, 1.0, 1.0, 0.25], "flash_time": 0.2},
+		{"id": "main_dans_le_tiroir", "mode": "trigger", "trigger": "drawer_kitchen_hand", "effect": "context", "visual": "hand", "duration": 0.8, "sound": "sting_high", "shake": 0.5},
+		{"id": "armoire_du_pendu", "mode": "trigger", "trigger": "wardrobe_master", "effect": "context", "visual": "falling_body", "duration": 2.5, "sound": "bang", "volume": 2.0, "shake": 0.7},
+		{"id": "portrait_de_gaspard", "mode": "trigger", "trigger": "portrait_gallery", "effect": "context", "visual": "portrait", "duration": 1.6, "sound": "sting_high", "shake": 0.4},
+		{"id": "poupee_qui_tourne", "mode": "trigger", "trigger": "musicbox_playing", "effect": "sound_only", "sound": "giggle", "shake": 0.15},
+		{"id": "poupee_examinee", "mode": "trigger", "trigger": "doll_look", "effect": "context", "visual": "doll_turn", "duration": 0.5, "sound": "giggle", "shake": 0.25},
+		{"id": "cle_dargent_noir_total", "mode": "trigger", "trigger": "pickup_key_silver", "effect": "blackout_breath", "duration": 4.0, "sound": "static", "volume": -6.0, "shake": 0.2},
+		{"id": "chapelle_premiere_visite", "mode": "trigger", "trigger": "door_chapel_first", "effect": "apparition", "anchor": "chapel_altar", "duration": 1.8, "sound": "sting_low", "shake": 0.3},
+		{"id": "registre_cri", "mode": "trigger", "trigger": "pickup_register", "effect": "house_scream", "sound": "", "shake": 0.5}
+	]
+}

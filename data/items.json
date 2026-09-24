@@ -1,0 +1,12 @@
+{
+	"flashlight": {"name": "Lampe torche", "desc": "Une vieille lampe à pile. [F] ou clic droit pour l'allumer. La pile s'use : [R] pour la remplacer."},
+	"battery": {"name": "Pile", "desc": "Une pile de rechange pour la lampe. [R] pour la changer."},
+	"matches": {"name": "Boîte d'allumettes", "desc": "Quelques allumettes encore sèches. De quoi allumer des cierges... ou un feu."},
+	"fuse": {"name": "Fusible", "desc": "Un fusible de porcelaine, en bon état. Il doit aller dans un boîtier électrique."},
+	"crank": {"name": "Manivelle", "desc": "Une toute petite manivelle de laiton. Trop petite pour un mécanisme de porte."},
+	"key_iron": {"name": "Clé de fer", "desc": "Lourde et froide, gravée d'un G. La clé de Gaspard."},
+	"key_silver": {"name": "Clé d'argent", "desc": "Finement ciselée, gravée d'un A. La clé d'Aurèle."},
+	"key_brass": {"name": "Clé de laiton", "desc": "Petite, presque un jouet, gravée d'un L. La clé de Lise."},
+	"key_bone": {"name": "Clé d'os", "desc": "Taillée dans un os blanchi, gravée d'un M. La clé de Madeleine."},
+	"register": {"name": "Registre de la Veille", "desc": "Un registre relié de cuir rouge. « Seul le feu défait ce qui fut écrit. »"}
+}
