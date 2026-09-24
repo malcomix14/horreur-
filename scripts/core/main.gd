@@ -158,8 +158,10 @@ func quit_game(code: int = 0) -> void:
 	get_tree().paused = false
 	_free_world()
 	AudioManager.shutdown()
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Laisse au serveur audio le temps de libérer les sons arrêtés (sinon fuites signalées à la fermeture).
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 200:
+		await get_tree().process_frame
 	get_tree().quit(code)
 
 
@@ -259,7 +261,11 @@ func _on_player_died() -> void:
 	GameManager.deaths += 1
 	GameManager.set_phase(GameManager.Phase.DEAD)
 	hud.fade(1.0, 0.5)
+	var dead_world := world
 	await get_tree().create_timer(0.8, true).timeout
+	# Si une nouvelle partie a été lancée entre-temps, on n'affiche rien.
+	if world != dead_world or GameManager.phase != GameManager.Phase.DEAD:
+		return
 	get_tree().paused = true
 	end_screen.show_death()
 

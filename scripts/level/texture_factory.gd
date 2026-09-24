@@ -8,7 +8,7 @@ const NAMES: Array[String] = [
 	"wallpaper", "plaster", "wood", "wood_panel", "fabric", "carpet", "rug", "metal", "brick",
 	"paper", "cobweb", "portrait_a", "portrait_b", "portrait_c", "portrait_scare", "window_night",
 	"skin", "ground", "bark", "books", "stained_glass", "secret_wall", "flame", "glow", "drawing",
-	"window_pane", "marble_plain",
+	"window_pane", "marble_plain", "paper_blank",
 ]
 
 
@@ -82,6 +82,8 @@ static func generate(tex_name: String) -> Image:
 			return _window_pane()
 		"marble_plain":
 			return _marble_plain()
+		"paper_blank":
+			return _paper_blank()
 	return _solid(Color(1, 0, 1))
 
 
@@ -651,6 +653,23 @@ static func _paper() -> Image:
 		var yy := 40.0 + float(line) * 13.0
 		var x1 := 30.0 + 190.0 * (0.6 + 0.4 * _hash(line + 3))
 		_draw_line(px, w, w, 30.0, yy, x1, yy + 1.0, 0.7, Color(0.25, 0.2, 0.18))
+	return _rgb(w, w, px)
+
+
+static func _paper_blank() -> Image:
+	var w := 256
+	var n := _nbuf(173, 0.02, 4, w, w)
+	var fib := _nbuf(174, 0.3, 2, w, w)
+	var px := _buf(w, w, 3)
+	for y: int in range(w):
+		for x: int in range(w):
+			var i := y * w + x
+			var u := float(x) / float(w) - 0.5
+			var v := float(y) / float(w) - 0.5
+			var edge := clampf(1.0 - pow(maxf(absf(u), absf(v)) * 2.0, 8.0) * 0.45, 0.0, 1.0)
+			var b := (0.86 + 0.08 * n[i] + 0.03 * fib[i]) * edge
+			var stain := clampf(0.3 - n[i], 0.0, 0.3)
+			_put(px, i, Color(b, b * (0.95 - stain * 0.3), b * (0.82 - stain * 0.5)))
 	return _rgb(w, w, px)
 
 

@@ -249,13 +249,13 @@ func _build_materials() -> void:
 	_std("toy_blue", "", Color(0.1, 0.18, 0.45), 0.6, 1.0)
 	_std("toy_yellow", "", Color(0.7, 0.55, 0.12), 0.6, 1.0)
 	# --- monstre
-	_std("skin", "skin", Color(0.6, 0.62, 0.58), 0.5, 4.0, 0.45)
-	_std("skin_dark", "skin", Color(0.3, 0.3, 0.29), 0.6, 4.0, 0.4)
+	_std("skin", "skin", Color(0.46, 0.47, 0.43), 0.55, 4.0, 0.4)
+	_std("skin_dark", "skin", Color(0.22, 0.22, 0.21), 0.7, 4.0, 0.3)
 	_std("cloth_black", "fabric", Color(0.07, 0.065, 0.06), 0.95, 4.0, 0.2)
 	_std("teeth", "", Color(0.75, 0.7, 0.55), 0.35, 1.0, 0.6)
-	_std("mouth", "", Color(0.12, 0.01, 0.01), 0.3, 1.0, 0.6)
-	var eye_white := _unshaded("eye_white", "", Color(0.85, 0.84, 0.76))
-	eye_white.albedo_color = Color(0.85, 0.84, 0.76)
+	_std("mouth", "", Color(0.06, 0.005, 0.005), 0.85, 1.0, 0.2)
+	var eye_white := _unshaded("eye_white", "", Color(0.62, 0.56, 0.42))
+	eye_white.albedo_color = Color(0.62, 0.56, 0.42)
 	_unshaded("eye_glow", "", Color(1.0, 0.92, 0.62))
 	# --- effets / transparents
 	var glass := _unshaded("glass_window", "window_night", Color(0.55, 0.6, 0.75))

@@ -35,6 +35,7 @@ func _ready() -> void:
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) != OK:
+		_auto_detect_defaults()
 		return
 	render_scale = clampf(float(cfg.get_value("video", "render_scale", render_scale)), 0.4, 1.0)
 	shadows = bool(cfg.get_value("video", "shadows", shadows))
@@ -51,6 +52,20 @@ func load_settings() -> void:
 	vol_master = clampf(float(cfg.get_value("audio", "master", vol_master)), 0.0, 1.0)
 	vol_music = clampf(float(cfg.get_value("audio", "music", vol_music)), 0.0, 1.0)
 	vol_sfx = clampf(float(cfg.get_value("audio", "sfx", vol_sfx)), 0.0, 1.0)
+
+
+## Premier lancement : réglages prudents si la carte graphique est intégrée.
+func _auto_detect_defaults() -> void:
+	var adapter := RenderingServer.get_video_adapter_name().to_lower()
+	var integrated := false
+	for hint: String in ["intel", "uhd", "iris", "llvmpipe", "mesa", "radeon(tm) graphics", "vega", "mali", "adreno"]:
+		if adapter.contains(hint):
+			integrated = true
+	if integrated:
+		render_scale = 0.65
+		quality = Quality.MEDIUM
+		shadows = true
+		max_fps = 60
 
 
 func save_settings() -> void:
@@ -87,7 +102,7 @@ func apply_video() -> void:
 		return
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = render_scale
-	vp.use_occlusion_culling = quality >= Quality.MEDIUM
+	vp.use_occlusion_culling = true
 	vp.positional_shadow_atlas_size = 1024 if quality == Quality.LOW else 2048
 	if not _is_headless():
 		if fullscreen:
@@ -120,10 +135,10 @@ func light_cull_radius() -> float:
 func camera_far() -> float:
 	match quality:
 		Quality.LOW:
-			return 32.0
+			return 26.0
 		Quality.HIGH:
-			return 60.0
-	return 45.0
+			return 50.0
+	return 35.0
 
 
 func dust_amount() -> int:

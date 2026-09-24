@@ -74,6 +74,18 @@ func _find_all(root: Node, script_class: String) -> Array[Node]:
 	return out
 
 
+func _find_all_class(root: Node, native_class: String) -> Array[Node]:
+	var out: Array[Node] = []
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n.get_class() == native_class:
+			out.append(n)
+		for c: Node in n.get_children():
+			stack.append(c)
+	return out
+
+
 func _find_one(root: Node, script_class: String) -> Node:
 	var l := _find_all(root, script_class)
 	return l[0] if not l.is_empty() else null
@@ -110,6 +122,10 @@ func _run() -> void:
 	_check(w != null and w.ready_to_play, "le monde est construit")
 	_check(GameManager.is_playing(), "phase = PLAYING")
 	_test_navigation(w)
+	if OS.get_cmdline_user_args().has("--perf"):
+		await _perf(w)
+		main.quit_game(0)
+		return
 	if OS.get_cmdline_user_args().has("--navonly"):
 		_log("=== RÉSULTAT : %d vérifications, %d échec(s) ===" % [_checks, _fails])
 		main.quit_game(0 if _fails == 0 else 1)
@@ -123,6 +139,65 @@ func _run() -> void:
 	await _test_ending()
 	_log("=== RÉSULTAT : %d vérifications, %d échec(s) ===" % [_checks, _fails])
 	main.quit_game(0 if _fails == 0 else 1)
+
+
+func _stats() -> String:
+	var dc := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var objs := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	var prims := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+	return "appels %4d  objets %4d  triangles %6d" % [int(dc), int(objs), int(prims)]
+
+
+## Mesures de rendu selon les réglages (développement).
+func _perf(w: GameWorld) -> void:
+	w.monster.set_physics_process(false)
+	var flashlight: Pickup = null
+	for n: Node in _find_all(w, "Pickup"):
+		if (n as Pickup).item_id == "flashlight":
+			flashlight = n as Pickup
+	flashlight.interact(w.player)
+	w.player.flashlight.set_on(true)
+	var views: Array = [
+		["galerie", Vector3(2.0, 0.05, 10.5), -PI * 0.5, -0.05],
+		["hall", Vector3(22.0, 0.05, 28.5), 0.0, 0.12],
+		["salle_a_manger", Vector3(9.3, 0.05, 19.3), 0.96, -0.1],
+		["bibliotheque", Vector3(4.5, 0.05, 7.8), 0.0, -0.05],
+	]
+	var cfgs: Array = [["base", true, 45.0, true], ["sans_occlusion", false, 45.0, true], ["far_30", true, 30.0, true], ["sans_ombres", true, 45.0, false]]
+	var total_mi := 0
+	var total_surf := 0
+	var room_surf := 0
+	for n: Node in _find_all_class(w, "MeshInstance3D"):
+		var mi := n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		total_mi += 1
+		total_surf += mi.mesh.get_surface_count()
+		if mi.name == "Mesh" and mi.get_parent().name.begins_with("Room_"):
+			room_surf += mi.mesh.get_surface_count()
+	_log("PERF scène : %d MeshInstance3D, %d surfaces (dont %d dans les 17 pièces)" % [total_mi, total_surf, room_surf])
+	for v: Variant in views:
+		var arr: Array = v
+		_place_player(arr[1] as Vector3, float(arr[2]), float(arr[3]))
+		for n2: Node in _find_all_class(w, "MeshInstance3D"):
+			var mi2 := n2 as MeshInstance3D
+			if not (mi2.name == "Mesh" and mi2.get_parent().name.begins_with("Room_")):
+				mi2.set_meta("was_visible", mi2.visible)
+				mi2.visible = false
+		w.player.flashlight.light.shadow_enabled = false
+		await _frames(6)
+		_log("PERF %-15s %-15s %s" % [str(arr[0]), "pieces_seules", _stats()])
+		for n3: Node in _find_all_class(w, "MeshInstance3D"):
+			var mi3 := n3 as MeshInstance3D
+			if mi3.has_meta("was_visible"):
+				mi3.visible = bool(mi3.get_meta("was_visible"))
+		for c: Variant in cfgs:
+			var cf: Array = c
+			get_viewport().use_occlusion_culling = bool(cf[1])
+			w.player.camera.far = float(cf[2])
+			w.player.flashlight.light.shadow_enabled = bool(cf[3])
+			await _frames(6)
+			_log("PERF %-15s %-15s %s" % [str(arr[0]), str(cf[0]), _stats()])
 
 
 func _compile_all(dir: String) -> void:
@@ -434,6 +509,7 @@ func _test_monster(w: GameWorld) -> void:
 			if _died:
 				break
 		_check(_died, "vu en entrant dans l'armoire : il l'en arrache")
+	await _wait(1.5)
 	await main.continue_game()
 
 

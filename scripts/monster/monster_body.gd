@@ -257,22 +257,23 @@ static func build_head(parent: Node3D) -> void:
 	var b := MeshBatcher.new()
 	# Crâne allongé, joues creusées, orbites profondes, yeux sans paupières, sourire trop large.
 	b.add_sphere("skin", Vector3(0, 0.11, 0.015), Vector3(0.108, 0.16, 0.13), Color.WHITE, 14, 10)
-	b.add_sphere("skin", Vector3(0, 0.155, -0.075), Vector3(0.095, 0.035, 0.05), Color(0.8, 0.8, 0.78), 10, 6)
-	b.add_sphere("skin_dark", Vector3(0.062, 0.05, -0.07), Vector3(0.03, 0.045, 0.04), Color.WHITE, 8, 5)
-	b.add_sphere("skin_dark", Vector3(-0.062, 0.05, -0.07), Vector3(0.03, 0.045, 0.04), Color.WHITE, 8, 5)
-	b.add_sphere("black", Vector3(0.045, 0.118, -0.098), Vector3(0.038, 0.034, 0.025), Color.WHITE, 8, 5)
-	b.add_sphere("black", Vector3(-0.045, 0.118, -0.098), Vector3(0.038, 0.034, 0.025), Color.WHITE, 8, 5)
-	b.add_sphere("eye_white", Vector3(0.045, 0.117, -0.108), Vector3(0.026, 0.026, 0.022), Color.WHITE, 10, 6)
-	b.add_sphere("eye_white", Vector3(-0.045, 0.117, -0.108), Vector3(0.026, 0.026, 0.022), Color.WHITE, 10, 6)
-	b.add_sphere("black", Vector3(0.047, 0.118, -0.128), Vector3(0.011, 0.011, 0.004), Color.WHITE, 6, 4)
-	b.add_sphere("black", Vector3(-0.043, 0.118, -0.128), Vector3(0.011, 0.011, 0.004), Color.WHITE, 6, 4)
-	b.add_sphere("eye_glow", Vector3(0.047, 0.118, -0.131), Vector3(0.0045, 0.0045, 0.002), Color.WHITE, 6, 4)
-	b.add_sphere("eye_glow", Vector3(-0.043, 0.118, -0.131), Vector3(0.0045, 0.0045, 0.002), Color.WHITE, 6, 4)
-	b.add_sphere("black", Vector3(0, 0.075, -0.118), Vector3(0.014, 0.018, 0.012), Color.WHITE, 6, 4)
-	b.add_sphere("mouth", Vector3(0, 0.022, -0.09), Vector3(0.078, 0.028, 0.04), Color.WHITE, 12, 6)
-	for i: int in range(12):
-		var a := (float(i) - 5.5) / 5.5
-		b.add_cylinder("teeth", Transform3D(Basis(Vector3.RIGHT, PI), Vector3(a * 0.07, 0.042, -0.122 + a * a * 0.045)), 0.0065, 0.0, 0.026 + 0.008 * (1.0 - absf(a)), 4)
+	b.add_sphere("skin_dark", Vector3(0.06, 0.06, -0.062), Vector3(0.022, 0.04, 0.03), Color.WHITE, 8, 5)
+	b.add_sphere("skin_dark", Vector3(-0.06, 0.06, -0.062), Vector3(0.022, 0.04, 0.03), Color.WHITE, 8, 5)
+	b.add_sphere("skin", Vector3(0, 0.138, -0.09), Vector3(0.092, 0.022, 0.04), Color(0.7, 0.7, 0.68), 10, 6)
+	b.add_sphere("black", Vector3(0.042, 0.115, -0.096), Vector3(0.032, 0.026, 0.02), Color.WHITE, 8, 5)
+	b.add_sphere("black", Vector3(-0.042, 0.115, -0.096), Vector3(0.032, 0.026, 0.02), Color.WHITE, 8, 5)
+	b.add_sphere("eye_white", Vector3(0.042, 0.114, -0.103), Vector3(0.017, 0.014, 0.013), Color.WHITE, 8, 5)
+	b.add_sphere("eye_white", Vector3(-0.042, 0.114, -0.103), Vector3(0.017, 0.014, 0.013), Color.WHITE, 8, 5)
+	b.add_sphere("black", Vector3(0.043, 0.114, -0.115), Vector3(0.0065, 0.0065, 0.003), Color.WHITE, 6, 4)
+	b.add_sphere("black", Vector3(-0.041, 0.114, -0.115), Vector3(0.0065, 0.0065, 0.003), Color.WHITE, 6, 4)
+	b.add_sphere("eye_glow", Vector3(0.043, 0.1145, -0.1175), Vector3(0.0025, 0.0025, 0.0015), Color.WHITE, 6, 4)
+	b.add_sphere("eye_glow", Vector3(-0.041, 0.1145, -0.1175), Vector3(0.0025, 0.0025, 0.0015), Color.WHITE, 6, 4)
+	b.add_sphere("black", Vector3(0.009, 0.072, -0.12), Vector3(0.006, 0.012, 0.008), Color.WHITE, 5, 4)
+	b.add_sphere("black", Vector3(-0.009, 0.072, -0.12), Vector3(0.006, 0.012, 0.008), Color.WHITE, 5, 4)
+	b.add_sphere("mouth", Vector3(0, 0.032, -0.1), Vector3(0.086, 0.009, 0.03), Color.WHITE, 12, 6)
+	for i: int in range(16):
+		var a := (float(i) - 7.5) / 7.5
+		b.add_cylinder("teeth", Transform3D(Basis(Vector3.RIGHT, PI), Vector3(a * 0.082, 0.04, -0.126 + a * a * 0.05)), 0.0045, 0.0, 0.016 + 0.008 * (1.0 - absf(a)), 4)
 	for i: int in range(6):
 		var hx := -0.07 + float(i) * 0.028
 		b.add_box("cloth_black", Transform3D(Basis(Vector3.FORWARD, (float(i) - 2.5) * 0.08), Vector3(hx, 0.02, 0.1)), Vector3(0.012, 0.32, 0.01))
@@ -287,9 +288,9 @@ static func build_head(parent: Node3D) -> void:
 	var jb := MeshBatcher.new()
 	jb.add_sphere("skin", Vector3(0, -0.035, -0.055), Vector3(0.075, 0.03, 0.07), Color.WHITE, 10, 6)
 	jb.add_sphere("mouth", Vector3(0, -0.012, -0.06), Vector3(0.065, 0.012, 0.055), Color.WHITE, 10, 4)
-	for i: int in range(10):
-		var a2 := (float(i) - 4.5) / 4.5
-		jb.add_cylinder("teeth", Transform3D(Basis.IDENTITY, Vector3(a2 * 0.06, -0.02, -0.112 + a2 * a2 * 0.04)), 0.0055, 0.0, 0.024, 4)
+	for i: int in range(14):
+		var a2 := (float(i) - 6.5) / 6.5
+		jb.add_cylinder("teeth", Transform3D(Basis.IDENTITY, Vector3(a2 * 0.07, -0.02, -0.114 + a2 * a2 * 0.045)), 0.0045, 0.0, 0.02, 4)
 	var jmi := MeshInstance3D.new()
 	jmi.mesh = jb.build(func(k: String) -> Material: return Assets.mat(k))
 	jmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -296,9 +296,18 @@ static func _saw(sec: float, f: float, amp: float, vib_rate: float = 0.0, vib_de
 			ff = lerpf(f, glide_to, float(i) / float(n))
 		if vib_depth > 0.0:
 			ff *= 1.0 + vib_depth * sin(TAU * vib_rate * t)
-		ph += ff / float(_sr)
+		var dt := ff / float(_sr)
+		ph += dt
 		ph -= floorf(ph)
-		b[i] = (ph * 2.0 - 1.0) * amp
+		# Dent de scie à bande limitée (polyBLEP) : beaucoup moins de repliement.
+		var v := ph * 2.0 - 1.0
+		if ph < dt:
+			var x := ph / dt
+			v -= x + x - x * x - 1.0
+		elif ph > 1.0 - dt:
+			var x2 := (ph - 1.0) / dt
+			v -= x2 * x2 + x2 + x2 + 1.0
+		b[i] = v * amp
 	return b
 
 
@@ -476,21 +485,36 @@ static func _breath_monster() -> PackedFloat32Array:
 
 
 static func _monster_scream() -> PackedFloat32Array:
+	# Cri « vocal » : trois voix en dents de scie très vibrées, filtrées par deux formants,
+	# un souffle rauque, et une légère saturation.
 	var dur := 2.0
-	var out := _silence(dur)
-	var freqs: Array[float] = [205.0, 258.0, 314.0, 402.0, 530.0]
+	var src := _silence(dur)
+	var freqs: Array[float] = [233.0, 277.0]
 	for f: float in freqs:
-		var s := _saw(dur, f * 1.08, 0.25, 6.5 + _rng.randf() * 2.0, 0.05, f * 0.62)
-		_mix(out, s, 0.0, 1.0)
-	var nb := _noise(dur)
-	_bandpass(nb, 2400.0, 0.8, 900.0)
-	_mix(out, nb, 0.0, 0.7)
-	_distort(out, 2.8)
-	_bandpass(out, 1400.0, 0.6)
+		var v := _saw(dur, f * 1.3, 0.45, 6.5 + _rng.randf() * 2.0, 0.035, f * 0.72)
+		_mix(src, v, 0.0, 1.0)
+	var f1 := src.duplicate()
+	_bandpass(f1, 820.0, 2.5, 620.0)
+	var f2 := src.duplicate()
+	_bandpass(f2, 2300.0, 3.5, 1700.0)
+	var f3 := src.duplicate()
+	_bandpass(f3, 3400.0, 5.0, 2800.0)
+	var out := _silence(dur)
+	_mix(out, f1, 0.0, 1.0)
+	_mix(out, f2, 0.0, 0.8)
+	_mix(out, f3, 0.0, 0.35)
+	var rasp := _noise(dur)
+	_bandpass(rasp, 2600.0, 1.5, 1400.0)
 	var n := out.size()
 	for i: int in range(n):
-		var t := float(i) / float(n)
-		var e := minf(t / 0.02, 1.0) * (1.0 if t < 0.65 else (1.0 - t) / 0.35)
+		var t := float(i) / float(_sr)
+		rasp[i] *= 0.6 + 0.4 * sin(TAU * 38.0 * t)
+	_mix(out, rasp, 0.0, 0.08)
+	_normalize(out, 1.0)
+	_distort(out, 1.3)
+	for i: int in range(n):
+		var t2 := float(i) / float(n)
+		var e := minf(t2 / 0.03, 1.0) * (1.0 if t2 < 0.6 else (1.0 - t2) / 0.4)
 		out[i] *= e
 	_normalize(out, 0.95)
 	return out
@@ -976,21 +1000,29 @@ static func _sting_low() -> PackedFloat32Array:
 
 
 static func _scream(dur: float) -> PackedFloat32Array:
-	var out := _silence(dur)
-	var freqs: Array[float] = [320.0, 347.0, 462.0, 611.0, 830.0]
+	# Hurlement de screamer : aigu, strident, avec formants et un peu de bruit.
+	var src := _silence(dur)
+	var freqs: Array[float] = [330.0, 415.0, 523.0, 659.0]
 	for f: float in freqs:
-		var s := _saw(dur, f, 0.3, 11.0 + _rng.randf() * 3.0, 0.07, f * 0.72)
-		_mix(out, s, 0.0, 1.0)
+		var v := _saw(dur, f, 0.3, 11.0 + _rng.randf() * 3.0, 0.07, f * 0.75)
+		_mix(src, v, 0.0, 1.0)
+	var f1 := src.duplicate()
+	_bandpass(f1, 1100.0, 2.0, 800.0)
+	var f2 := src.duplicate()
+	_bandpass(f2, 2800.0, 3.0, 2000.0)
+	var out := _silence(dur)
+	_mix(out, f1, 0.0, 1.0)
+	_mix(out, f2, 0.0, 0.9)
 	var nz := _noise(dur)
-	_bandpass(nz, 2500.0, 0.7, 1200.0)
-	_mix(out, nz, 0.0, 0.9)
-	_distort(out, 4.0)
-	_bandpass(out, 1800.0, 0.55)
+	_bandpass(nz, 3000.0, 1.0, 1500.0)
+	_mix(out, nz, 0.0, 0.18)
+	_normalize(out, 1.0)
+	_distort(out, 2.2)
 	var n := out.size()
 	for i: int in range(n):
 		var t := float(i) / float(n)
 		out[i] *= minf(t / 0.005, 1.0) * (1.0 if t < 0.6 else (1.0 - t) / 0.4)
-	_normalize(out, 1.0)
+	_normalize(out, 0.97)
 	return out
 
 
@@ -1008,7 +1040,7 @@ static func _bang() -> PackedFloat32Array:
 	_env(tail, 0.02, 0.5)
 	_mix(out, tail, 0.0, 2.0)
 	_distort(out, 1.6)
-	_normalize(out, 1.0)
+	_normalize(out, 0.95)
 	return out
 
 
@@ -1279,7 +1311,7 @@ static func _capture() -> PackedFloat32Array:
 	_env(hit, 0.001, 0.25)
 	_mix(out, hit, 0.3, 1.5)
 	_distort(out, 1.5)
-	_normalize(out, 1.0)
+	_normalize(out, 0.97)
 	return out
 
 

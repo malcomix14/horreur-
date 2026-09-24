@@ -3,7 +3,7 @@ extends Node
 ## sinon synthèse procédurale mise en cache), pools de lecteurs 2D/3D, musique dynamique à couches.
 
 const CACHE_DIR: String = "user://cache"
-const SFX_CACHE_VERSION: int = 3
+const SFX_CACHE_VERSION: int = 4
 const POOL_2D: int = 10
 const POOL_3D: int = 20
 const MUSIC_LAYERS: Array[String] = ["drone", "tension", "chase", "wind"]

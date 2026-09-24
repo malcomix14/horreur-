@@ -19,7 +19,7 @@ func _ready() -> void:
 	panel = PanelContainer.new()
 	panel.theme = UITheme.get_theme()
 	var sb := StyleBoxTexture.new()
-	sb.texture = Assets.tex("paper")
+	sb.texture = Assets.tex("paper_blank")
 	sb.modulate_color = Color(0.95, 0.9, 0.8)
 	sb.content_margin_left = 48
 	sb.content_margin_right = 48

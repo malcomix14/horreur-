@@ -67,6 +67,8 @@ Il y a **deux fins**.
 ## 5. Réglages pour PC faible (ex. Intel i3 N305, 8 Go, iGPU)
 
 Le projet utilise déjà le renderer **Compatibility** (OpenGL 3.3), sans SDFGI, SSR, SSAO, glow ni brouillard volumétrique.
+Au **premier lancement**, si une carte graphique intégrée est détectée (Intel UHD/Iris, Radeon intégrée…), le jeu choisit
+automatiquement : résolution 3D 65 %, qualité Moyenne, 60 FPS max.
 Dans **Options** (menu principal ou pause) :
 
 - Bouton **« Préréglage PC faible »** : résolution 3D 60 %, qualité Basse, ombres de la lampe désactivées,
@@ -78,7 +80,13 @@ Dans **Options** (menu principal ou pause) :
 - **Images/s max** : 30 stabilise la machine et évite la surchauffe ; 60 si elle suit.
 - **Plein écran** et **VSync** : à tester chez vous (la VSync peut limiter à 60).
 
-Optimisations intégrées : géométrie fusionnée par pièce et par matériau (peu d'appels de dessin), textures
+Mesures faites sur le rendu Compatibility (vues les plus chargées : galerie de 44 m, grand hall) : environ 450 appels de dessin
+sans l'ombre de la lampe, ~600 avec (dont une pré-passe de profondeur qui double les appels mais évite de calculer l'éclairage
+des pixels cachés), 75 000 à 140 000 triangles. L'ombre de la lampe coûte donc ~40 % d'appels en plus : c'est la première
+chose à couper si ça rame.
+
+Optimisations intégrées : géométrie fusionnée par pièce et par matériau (les matériaux qui ne diffèrent que par la couleur
+partagent une même surface, teinte cuite dans les sommets), textures
 générées en 64–256 px, occlusion culling par boîtes sur les murs, lumières d'ambiance sans ombres activées seulement
 près du joueur, animation du monstre coupée quand il est loin, fausse occlusion ambiante « cuite » dans les couleurs de sommets,
 rais de lune et halos en géométrie additive (pas de volumétrique).
@@ -153,10 +161,12 @@ déplacement = `NavigationAgent3D` sur un navmesh calculé au chargement.
   atteignables, cave accessible, cabinet secret fermé puis ouvert), portes, lecture, tiroirs, fusible → monte-charge,
   coffre (mauvais puis bon code), boîte à musique, cierges (mauvais puis bon ordre), bibliothèque secrète, registre brûlé,
   pile, poursuite et capture, reprise de sauvegarde, cachette non vue (pas trouvé) et vue (arraché), les 18 screamers,
-  menus, options, pause et fin « Délivrance ».
+  menus, options, pause et fin « Délivrance ». Résultat : **112 vérifications, 0 échec** sous 4.3 comme sous 4.7.2.
+- Les sons synthétisés ont été contrôlés par analyse (niveaux, saturation, silence, spectres), pas à l'oreille.
 - Des captures d'écran ont été produites avec le renderer Compatibility sur un rendu logiciel (Mesa llvmpipe) pour contrôler l'image.
 
 Pour relancer ce test : `godot --path . --fixed-fps 60 -- --autotest` (ajouter `--headless` pour ne rien afficher).
+Pour mesurer les appels de dessin sur votre machine : `godot --path . -- --autotest --perf` (lignes `PERF` dans la console).
 
 **Non vérifié** (à tester chez vous) : les performances réelles sur votre i3 N305, le rendu exact sur un vrai GPU Intel,
 le son (la machine de test n'avait pas de carte son : les sons ont été générés et joués mais pas écoutés),
