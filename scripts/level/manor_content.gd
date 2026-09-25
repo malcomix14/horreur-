@@ -6,6 +6,7 @@ extends RefCounted
 const WARM: Color = Color(1.0, 0.72, 0.42)
 const BULB: Color = Color(1.0, 0.82, 0.6)
 const COLD: Color = Color(0.7, 0.8, 1.0)
+const MOON: Color = Color(0.55, 0.66, 1.0)
 
 var world: GameWorld
 var b: ManorBuilder
@@ -65,6 +66,7 @@ func _light(room: String, pos: Vector3, color: Color, energy: float, light_range
 	var l := FlickerLight.new()
 	l.setup(color, energy, light_range, mode)
 	l.power_group = power_group
+	l.room_id = room
 	_add(room, l, pos)
 	if glow == "bulb":
 		var g := MeshInstance3D.new()
@@ -108,7 +110,7 @@ func _flame(room: String, pos: Vector3, scale: float) -> MeshInstance3D:
 
 
 ## Candélabre posé (3 bougies) + lumière de bougie.
-func _candelabra(room: String, pos: Vector3, energy: float = 0.9, lit: bool = true) -> FlickerLight:
+func _candelabra(room: String, pos: Vector3, energy: float = 1.4, lit: bool = true) -> FlickerLight:
 	b.cyl(room, "brass", pos, 0.09, 0.05, 0.04, 8)
 	b.cyl(room, "brass", pos + Vector3(0, 0.04, 0), 0.015, 0.015, 0.3, 6)
 	b.box(room, "brass", pos + Vector3(0, 0.32, 0), Vector3(0.36, 0.02, 0.02), 0.0, false)
@@ -117,20 +119,86 @@ func _candelabra(room: String, pos: Vector3, energy: float = 0.9, lit: bool = tr
 	for t: Vector3 in tops:
 		b.cyl(room, "wax", pos + t, 0.016, 0.016, 0.1, 6)
 		flames.append(_flame(room, pos + t + Vector3(0, 0.14, 0), 1.0))
-	var l := _light(room, pos + Vector3(0, 0.6, 0), WARM, energy, 6.0, FlickerLight.Mode.CANDLE, "none")
+	var l := _light(room, pos + Vector3(0, 0.6, 0), WARM, energy, 9.0, FlickerLight.Mode.CANDLE, "none")
 	for f: Node3D in flames:
 		l.glow_nodes.append(f)
 	l.set_switched(lit)
 	return l
 
 
-func _sconce(room: String, pos: Vector3, normal: Vector3, mode: FlickerLight.Mode = FlickerLight.Mode.CANDLE, energy: float = 0.7) -> FlickerLight:
+func _sconce(room: String, pos: Vector3, normal: Vector3, mode: FlickerLight.Mode = FlickerLight.Mode.CANDLE, energy: float = 1.2) -> FlickerLight:
 	b.box(room, "brass", pos - normal * 0.02 + Vector3(0, -0.12, 0), Vector3(0.1, 0.22, 0.1) if absf(normal.z) > 0.5 else Vector3(0.1, 0.22, 0.1), 0.0, false)
 	b.box(room, "brass", pos + normal * 0.08 + Vector3(0, -0.2, 0), Vector3(0.05, 0.04, 0.05), 0.0, false)
 	b.cyl(room, "wax", pos + normal * 0.12 + Vector3(0, -0.18, 0), 0.018, 0.018, 0.1, 6)
-	var l := _light(room, pos + normal * 0.25, WARM if mode != FlickerLight.Mode.FAULTY else BULB, energy, 5.5, mode, "none")
+	var l := _light(room, pos + normal * 0.25, WARM if mode != FlickerLight.Mode.FAULTY else BULB, energy, 8.5, mode, "none")
 	l.glow_nodes.append(_flame(room, pos + normal * 0.12 + Vector3(0, -0.02, 0), 1.0))
 	return l
+
+
+## Clair de lune entrant par une fenêtre : lumière froide et diffuse placée juste à l'intérieur.
+## Donne une visibilité « naturelle » aux pièces sans casser l'ambiance nocturne.
+func _moonlight(room: String, pos: Vector3, energy: float = 0.85, light_range: float = 8.0) -> FlickerLight:
+	var l := _light(room, pos, MOON, energy, light_range, FlickerLight.Mode.STEADY, "none")
+	l.light_specular = 0.1
+	return l
+
+
+## Bougie sur son bougeoir (flamme + lumière chaude). `with_stick` = false si le bougeoir existe déjà.
+func _candle(room: String, pos: Vector3, energy: float = 1.0, light_range: float = 7.0, with_stick: bool = true) -> FlickerLight:
+	if with_stick:
+		PropFactory.candle_stick(b, room, pos)
+	var l := _light(room, pos + Vector3(0, 0.45, 0), WARM, energy, light_range, FlickerLight.Mode.CANDLE, "none")
+	l.glow_nodes.append(_flame(room, pos + Vector3(0, 0.29, 0), 1.0))
+	return l
+
+
+## Grand cierge sur pied de fer forgé (chapelle).
+func _cierge(room: String, pos: Vector3, energy: float = 1.1, light_range: float = 8.0) -> FlickerLight:
+	b.cyl(room, "iron_black", pos, 0.14, 0.1, 0.03, 8)
+	b.cyl(room, "iron_black", pos + Vector3(0, 0.03, 0), 0.02, 0.02, 1.05, 6)
+	b.cyl(room, "iron_black", pos + Vector3(0, 1.08, 0), 0.07, 0.07, 0.02, 8)
+	b.cyl(room, "wax", pos + Vector3(0, 1.1, 0), 0.035, 0.035, 0.3, 8)
+	b.collider(room, pos + Vector3(0, 0.6, 0), Vector3(0.25, 1.2, 0.25))
+	var l := _light(room, pos + Vector3(0, 1.6, 0), WARM, energy, light_range, FlickerLight.Mode.CANDLE, "none")
+	l.glow_nodes.append(_flame(room, pos + Vector3(0, 1.45, 0), 1.3))
+	return l
+
+
+## Lanterne à pétrole accrochée au mur ou au plafond (flamme derrière des montants de fer).
+func _lantern(room: String, pos: Vector3, energy: float = 1.2, light_range: float = 8.5) -> FlickerLight:
+	b.cyl(room, "iron_black", pos + Vector3(0, -0.14, 0), 0.075, 0.075, 0.03, 8)
+	b.cyl(room, "iron_black", pos + Vector3(0, 0.1, 0), 0.075, 0.02, 0.07, 8)
+	b.cyl(room, "iron_black", pos + Vector3(0, 0.17, 0), 0.006, 0.006, 0.12, 4)
+	for k: int in range(4):
+		var a := TAU * float(k) / 4.0 + PI * 0.25
+		b.box(room, "iron_black", pos + Vector3(cos(a) * 0.07, -0.02, sin(a) * 0.07), Vector3(0.012, 0.24, 0.012), 0.0, false)
+	var l := _light(room, pos, WARM, energy, light_range, FlickerLight.Mode.CANDLE, "none")
+	l.glow_nodes.append(_flame(room, pos + Vector3(0, -0.06, 0), 1.2))
+	return l
+
+
+## Lampadaire à abat-jour de tissu (l'abat-jour luit doucement).
+func _floor_lamp(room: String, pos: Vector3, energy: float = 1.3, light_range: float = 8.5) -> FlickerLight:
+	b.cyl(room, "brass", pos, 0.16, 0.12, 0.04, 10)
+	b.cyl(room, "brass", pos + Vector3(0, 0.04, 0), 0.015, 0.015, 1.36, 6)
+	b.cyl(room, "lampshade", pos + Vector3(0, 1.3, 0), 0.25, 0.15, 0.28, 12)
+	b.collider(room, pos + Vector3(0, 0.7, 0), Vector3(0.32, 1.4, 0.32))
+	return _light(room, pos + Vector3(0, 1.42, 0), Color(1.0, 0.76, 0.48), energy, light_range, FlickerLight.Mode.STEADY, "none")
+
+
+## Soupirail de cave : petite ouverture grillagée en haut du mur, laisse passer un peu de lune.
+## `center` est sur la face intérieure du mur, `normal` pointe vers l'intérieur de la pièce.
+func _soupirail(room: String, center: Vector3, normal: Vector3, energy: float = 0.7) -> FlickerLight:
+	var along := normal.cross(Vector3.UP).normalized()
+	var hw := 0.38
+	var hh := 0.17
+	var c := center + normal * 0.005
+	b.quad_uv(room, "glass_window", c - along * hw - Vector3(0, hh, 0), c + along * hw - Vector3(0, hh, 0), c + along * hw + Vector3(0, hh, 0), c - along * hw + Vector3(0, hh, 0), normal)
+	for k: int in range(5):
+		var t := -hw + (float(k) + 0.5) * (hw * 2.0) / 5.0
+		b.box(room, "iron_black", c + along * t + normal * 0.02, Vector3(0.02, hh * 2.0, 0.02), 0.0, false)
+	b.box(room, "stone_dark", c + normal * 0.06 - Vector3(0, hh + 0.03, 0), Vector3(absf(along.x) * hw * 2.2 + 0.12, 0.06, absf(along.z) * hw * 2.2 + 0.12), 0.0, false)
+	return _moonlight(room, center + normal * 0.8 - Vector3(0, 0.45, 0), energy, 7.0)
 
 
 func _examine(room: String, p_prompt: String, message: String, pos: Vector3, rot: float, size: Vector3, offset: Vector3 = Vector3.ZERO) -> ExamineProp:
@@ -197,14 +265,18 @@ func _dining() -> void:
 		b.cyl(r, "porcelain", Vector3(x, 0.785, 17.4), 0.12, 0.12, 0.012, 12)
 	b.cyl(r, "metal", Vector3(5.0, 0.785, 17.0), 0.03, 0.04, 0.2, 8)
 	# Candélabre allumé : la seule lumière au réveil.
-	_candelabra(r, Vector3(6.0, 0.79, 17.0), 1.1, true)
+	_candelabra(r, Vector3(6.0, 0.79, 17.0), 1.6, true)
 	_pickup(r, "flashlight", "flashlight", Vector3(7.3, 0.795, 17.25), 0.4)
 	_note(r, "lettre_notaire", "paper", Vector3(6.7, 0.792, 16.7), -0.3)
 	# Buffet + pile + tableau.
 	PropFactory.sideboard(b, r, PropFactory.at(Vector3(8.5, 0, 21.6), PI), 2.4, "wood_dark")
 	PropFactory.vase(b, r, Vector3(7.7, 0.94, 21.6))
 	PropFactory.candle_stick(b, r, Vector3(9.4, 0.94, 21.65))
+	_candle(r, Vector3(9.4, 0.94, 21.65), 0.9, 7.0, false)
 	_pickup(r, "battery", "bat_dining", Vector3(9.0, 0.95, 21.5), 0.8)
+	# Lune par les deux fenêtres ouest.
+	_moonlight(r, Vector3(1.0, 2.1, 14.5))
+	_moonlight(r, Vector3(1.0, 2.1, 19.5))
 	_portrait(r, Vector3(8.5, 2.0, 21.875), Vector3(0, 0, -1), 0.8, 1.0, "portrait_b")
 	_portrait(r, Vector3(0.125, 1.9, 17.0), Vector3(1, 0, 0), 0.9, 1.1, "portrait_a")
 	_hide(r, "closet", Vector3(10.2, 0, 12.125 + 0.31), 0.0, "wood_dark", "", 0.95)
@@ -258,7 +330,9 @@ func _kitchen() -> void:
 	# Suspension défaillante.
 	b.cyl(r, "iron_black", Vector3(6, 2.3, 25.5), 0.01, 0.01, 0.9, 4)
 	b.cyl(r, "metal", Vector3(6, 2.25, 25.5), 0.22, 0.05, 0.14, 10, false, Color(0.4, 0.45, 0.4))
-	_light(r, Vector3(6, 2.2, 25.5), BULB, 1.0, 7.0, FlickerLight.Mode.FAULTY)
+	_light(r, Vector3(6, 2.2, 25.5), BULB, 1.1, 9.0, FlickerLight.Mode.FAULTY)
+	_moonlight(r, Vector3(1.0, 1.9, 25.5), 0.6, 6.5)
+	_candle(r, Vector3(9.4, 0.93, 22.55), 0.7, 6.5)
 	# Casseroles suspendues.
 	b.box(r, "iron_black", Vector3(3.5, 2.3, 26.0), Vector3(1.6, 0.03, 0.03), 0.0, false)
 	for k: int in range(4):
@@ -302,8 +376,14 @@ func _cellar() -> void:
 	_hide(rb, "wardrobe", Vector3(11.875 - 0.31, y, 20.3), -PI * 0.5, "wood_raw", "", 1.2)
 	PropFactory.crate(b, rb, Vector3(2.0, y, 21.0), 0.7, 0.2)
 	PropFactory.crate(b, rb, Vector3(2.1, y + 0.7, 21.0), 0.5, 0.6)
-	_light(rb, Vector3(3.5, y + 2.9, 15.5), BULB, 1.0, 7.5, FlickerLight.Mode.STEADY, "bulb", "cellar")
-	_light(rb, Vector3(8.5, y + 2.9, 19.0), BULB, 0.9, 7.0, FlickerLight.Mode.FAULTY, "bulb", "cellar")
+	_light(rb, Vector3(3.5, y + 2.9, 15.5), BULB, 1.7, 10.0, FlickerLight.Mode.STEADY, "bulb", "cellar")
+	_light(rb, Vector3(8.5, y + 2.9, 19.0), BULB, 1.5, 9.5, FlickerLight.Mode.FAULTY, "bulb", "cellar")
+	# Sans courant : la bougie de Gaspard sur l'établi, sa lanterne près du tableau électrique, un soupirail.
+	var cl := _light(rb, Vector3(6.6, y + 1.25, 17.3), WARM, 1.0, 8.0, FlickerLight.Mode.CANDLE, "none")
+	cl.glow_nodes.append(_flame(rb, Vector3(6.6, y + 0.97, 17.3), 1.0))
+	_lantern(rb, Vector3(7.5, y + 1.95, 12.45), 1.1, 8.0)
+	b.box(rb, "iron_black", Vector3(7.5, y + 2.14, 12.2), Vector3(0.02, 0.02, 0.2), 0.0, false)
+	_soupirail(rb, Vector3(0.126, y + 2.75, 16.7), Vector3(1, 0, 0))
 	var ra := "cellar_a"
 	var dw := Dumbwaiter.new()
 	dw.setup()
@@ -316,7 +396,10 @@ func _cellar() -> void:
 	PropFactory.crate(b, ra, Vector3(8.6, y, 26.9), 0.7, 0.1)
 	PropFactory.barrel(b, ra, Vector3(9.6, y, 26.8))
 	_hide(ra, "wardrobe", Vector3(0.125 + 0.31, y, 25.8), PI * 0.5, "wood_raw", "", 1.2)
-	_light(ra, Vector3(6.0, y + 2.9, 25.5), BULB, 1.0, 8.0, FlickerLight.Mode.STEADY, "bulb", "cellar")
+	_light(ra, Vector3(6.0, y + 2.9, 25.5), BULB, 1.7, 10.0, FlickerLight.Mode.STEADY, "bulb", "cellar")
+	_lantern(ra, Vector3(10.4, y + 2.05, 24.4), 1.1, 8.0)
+	b.cyl(ra, "iron_black", Vector3(10.4, y + 2.3, 24.4), 0.006, 0.006, 1.0, 4)
+	_soupirail(ra, Vector3(0.126, y + 2.75, 27.4), Vector3(1, 0, 0))
 	world.anchors["cellar_drip_1"] = Vector3(3.0, y + 3.0, 16.0)
 	world.anchors["cellar_drip_2"] = Vector3(9.0, y + 3.0, 26.0)
 
@@ -354,12 +437,15 @@ func _library() -> void:
 	b.cyl(r, "brass", Vector3(5.1, 0.78, 3.8), 0.07, 0.07, 0.02, 8)
 	b.cyl(r, "brass", Vector3(5.1, 0.8, 3.8), 0.012, 0.012, 0.3, 6)
 	b.box(r, "glass_stained", Vector3(5.1, 1.12, 3.85), Vector3(0.3, 0.08, 0.14), 0.0, false, Color(0.2, 0.6, 0.3))
-	_light(r, Vector3(5.1, 1.0, 3.95), Color(0.95, 0.9, 0.6), 0.85, 5.5, FlickerLight.Mode.CANDLE, "none")
+	_light(r, Vector3(5.1, 1.0, 3.95), Color(0.95, 0.9, 0.6), 1.4, 8.5, FlickerLight.Mode.STEADY, "none")
+	_moonlight(r, Vector3(4.5, 2.3, 1.2), 0.9, 8.0)
+	_moonlight(r, Vector3(1.2, 2.1, 4.5), 0.75, 7.0)
 	_note(r, "coupure_journal", "newspaper", Vector3(4.2, 0.785, 4.1), 0.2)
 	b.box(r, "leather", Vector3(3.8, 0.8, 3.9), Vector3(0.2, 0.05, 0.28), 0.4, false, Color(0.3, 0.12, 0.08))
 	# Guéridon avec la manivelle.
 	PropFactory.round_table(b, r, PropFactory.at(Vector3(1.6, 0, 5.0)), 0.35, 0.7, "wood_dark")
 	_pickup(r, "crank", "crank", Vector3(1.55, 0.71, 5.0), 0.7)
+	_candle(r, Vector3(1.78, 0.71, 4.78), 0.9, 7.0)
 	PropFactory.armchair(b, r, PropFactory.at(Vector3(2.3, 0, 6.2), PI * 0.8), "fabric_green", "wood_dark")
 	_hide(r, "closet", Vector3(7.9, 0, 0.125 + 0.31), 0.0, "wood_dark", "", 0.95)
 	# Globe terrestre.
@@ -376,7 +462,7 @@ func _secret() -> void:
 	reg.checkpoint = true
 	reg.pickup_message = "Le Registre de la Veille. « Seul le feu défait ce qui fut écrit. »"
 	_note(r, "aurele_dernier", "paper", Vector3(10.0, 0.86, 1.8), -0.4)
-	var l := _candelabra(r, Vector3(11.1, 0.86, 1.4), 0.7, true)
+	var l := _candelabra(r, Vector3(11.1, 0.86, 1.4), 0.6, true)
 	l.light_color = Color(1.0, 0.45, 0.3)
 	_candelabra(r, Vector3(9.8, 0.86, 1.3), 0.3, true)
 	# Aurèle, mort à son bureau.
@@ -386,9 +472,12 @@ func _secret() -> void:
 	_pickup(r, "battery", "bat_secret", Vector3(11.3, 0.61, 7.8), 0.3)
 	PropFactory.bookshelf(b, r, PropFactory.at(Vector3(11.67, 0, 5.2), -PI * 0.5), 1.6, 2.4, 0.35, 5)
 	b.cyl(r, "iron_black", Vector3(10.5, 0, 6.5), 0.4, 0.4, 0.02, 16)
+	var ring := _light(r, Vector3(10.5, 0.5, 6.5), WARM, 0.45, 6.0, FlickerLight.Mode.CANDLE, "none")
 	for k: int in range(5):
 		var a := TAU * float(k) / 5.0
-		PropFactory.candle_stick(b, r, Vector3(10.5 + cos(a) * 0.6, 0, 6.5 + sin(a) * 0.6), 0.14)
+		var cp := Vector3(10.5 + cos(a) * 0.6, 0, 6.5 + sin(a) * 0.6)
+		PropFactory.candle_stick(b, r, cp, 0.14)
+		ring.glow_nodes.append(_flame(r, cp + Vector3(0, 0.26, 0), 0.9))
 
 
 func _skeleton(r: String, seat: Vector3, rot: float) -> void:
@@ -423,7 +512,9 @@ func _study() -> void:
 	b.cyl(r, "brass", Vector3(16.3, 0.78, 2.8), 0.08, 0.08, 0.02, 8)
 	b.cyl(r, "brass", Vector3(16.3, 0.8, 2.8), 0.012, 0.012, 0.35, 6)
 	b.cyl(r, "fabric_green", Vector3(16.3, 1.05, 2.8), 0.16, 0.08, 0.16, 10)
-	_light(r, Vector3(16.3, 1.0, 2.8), WARM, 0.8, 5.0, FlickerLight.Mode.FAULTY, "none")
+	_light(r, Vector3(16.3, 1.0, 2.8), WARM, 1.4, 8.5, FlickerLight.Mode.FAULTY, "none")
+	_moonlight(r, Vector3(15.5, 2.1, 1.1), 0.8, 7.5)
+	_sconce(r, Vector3(18.875, 2.1, 1.9), Vector3(-1, 0, 0))
 	var safe := Safe.new()
 	safe.setup("1403")
 	_add(r, safe, Vector3(18.2, 0, 0.125 + 0.3), 0.0)
@@ -463,8 +554,12 @@ func _chapel() -> void:
 	# Lampe de sanctuaire rouge, très faible.
 	b.cyl(r, "iron_black", Vector3(25.2, 3.4, 1.2), 0.01, 0.01, 1.6, 4)
 	b.cyl(r, "glass_stained", Vector3(25.2, 3.25, 1.2), 0.06, 0.08, 0.15, 8, false, Color(1.2, 0.2, 0.2))
-	var sl := _light(r, Vector3(25.2, 3.2, 1.2), Color(1.0, 0.25, 0.2), 0.45, 5.0, FlickerLight.Mode.CANDLE, "none")
-	sl.omni_attenuation = 1.2
+	_light(r, Vector3(25.2, 3.2, 1.2), Color(1.0, 0.25, 0.2), 0.9, 8.0, FlickerLight.Mode.CANDLE, "none")
+	# Lune filtrée par le vitrail (teinte violette) et deux grands cierges à l'entrée.
+	var sg := _moonlight(r, Vector3(23.0, 3.2, 1.3), 0.8, 9.0)
+	sg.light_color = Color(0.62, 0.55, 1.0)
+	_cierge(r, Vector3(20.6, 0, 8.2), 0.85)
+	_cierge(r, Vector3(25.4, 0, 8.2), 0.85)
 	world.anchors["chapel_altar"] = Vector3(23.0, 0.16, 2.35)
 	_portrait(r, Vector3(19.125, 2.6, 3.0), Vector3(1, 0, 0), 0.8, 1.1, "portrait_c")
 
@@ -480,7 +575,9 @@ func _master() -> void:
 	_pickup(r, "battery", "bat_master", Vector3(31.85, 0.6, 0.4), 0.5)
 	b.cyl(r, "brass", Vector3(34.15, 0.6, 0.4), 0.07, 0.05, 0.05, 8)
 	b.cyl(r, "glass_stained", Vector3(34.15, 0.65, 0.4), 0.06, 0.05, 0.16, 8, false, Color(1.5, 1.2, 0.8))
-	_light(r, Vector3(34.15, 0.95, 0.5), WARM, 0.75, 5.5, FlickerLight.Mode.CANDLE, "flame")
+	_light(r, Vector3(34.15, 0.95, 0.5), WARM, 1.2, 8.0, FlickerLight.Mode.CANDLE, "flame")
+	_moonlight(r, Vector3(30.5, 2.1, 1.1), 0.9, 8.0)
+	_sconce(r, Vector3(27.125, 2.1, 2.3), Vector3(1, 0, 0), FlickerLight.Mode.CANDLE, 1.0)
 	_hide(r, "wardrobe", Vector3(27.125 + 0.31, 0, 4.5), PI * 0.5, "wood_dark")
 	# Armoire du pendu (screamer).
 	var wx := 37.875 - 0.31
@@ -504,6 +601,7 @@ func _master() -> void:
 	wscare.one_shot_message = true
 	PropFactory.dresser(b, r, PropFactory.at(Vector3(34.5, 0, 8.62), PI), 1.4, 0.9, "wood_dark")
 	_note(r, "madeleine_journal_2", "book", Vector3(34.3, 0.92, 8.55), 0.3)
+	_candle(r, Vector3(35.0, 0.9, 8.55), 0.9, 7.5)
 	b.box(r, "mirror", Vector3(34.5, 1.65, 8.84), Vector3(0.8, 0.9, 0.02), 0.0, false)
 	b.box(r, "gold_frame", Vector3(34.5, 1.65, 8.855), Vector3(0.9, 1.0, 0.02), 0.0, false)
 	PropFactory.armchair(b, r, PropFactory.at(Vector3(36.6, 0, 1.6), -PI * 0.7), "fabric_blue", "wood_dark")
@@ -549,7 +647,9 @@ func _bath() -> void:
 	_note(r, "note_victime", "paper", Vector3(39.4, 0.005, 1.4), 1.2)
 	b.box(r, "mouth", Vector3(40.1, 0.004, 1.5), Vector3(0.6, 0.004, 0.35), 0.4, false, Color(0.5, 0.1, 0.1))
 	PropFactory.rug(b, r, Vector3(41.0, 0, 3.0), 1.6, 0.9, 0.0, "rug_blue")
-	_light(r, Vector3(41.0, 2.8, 5.0), BULB, 0.55, 5.0, FlickerLight.Mode.FAULTY)
+	_light(r, Vector3(41.0, 2.8, 5.0), BULB, 0.45, 7.5, FlickerLight.Mode.FAULTY)
+	_moonlight(r, Vector3(43.1, 2.0, 4.5), 0.4, 6.5)
+	_sconce(r, Vector3(43.875, 2.0, 7.9), Vector3(-1, 0, 0), FlickerLight.Mode.CANDLE, 0.5)
 
 
 # ============================================================ galerie et couloirs
@@ -584,19 +684,29 @@ func _gallery() -> void:
 	_pickup(r, "battery", "bat_gallery", Vector3(9.8, 0.855, 9.35), 0.4)
 	PropFactory.table(b, r, PropFactory.at(Vector3(34.5, 0, 11.67)), 1.2, 0.4, 0.85, "wood_dark")
 	PropFactory.candle_stick(b, r, Vector3(34.2, 0.85, 11.67))
+	_candle(r, Vector3(34.2, 0.85, 11.67), 0.8, 6.5, false)
 	_hide(r, "wardrobe", Vector3(36.5, 0, 9.125 + 0.31), 0.0, "wood_dark")
+	_sconce(r, Vector3(2.5, 2.2, 9.125), Vector3(0, 0, 1))
 	_sconce(r, Vector3(11.0, 2.2, 11.875), Vector3(0, 0, -1))
-	_sconce(r, Vector3(19.0, 2.2, 11.875), Vector3(0, 0, -1), FlickerLight.Mode.CANDLE, 0.5)
-	_sconce(r, Vector3(27.5, 2.2, 9.125), Vector3(0, 0, 1), FlickerLight.Mode.FAULTY, 0.7)
+	_sconce(r, Vector3(19.0, 2.2, 11.875), Vector3(0, 0, -1), FlickerLight.Mode.CANDLE, 1.0)
+	_sconce(r, Vector3(27.5, 2.2, 9.125), Vector3(0, 0, 1), FlickerLight.Mode.FAULTY, 1.2)
+	_sconce(r, Vector3(33.0, 2.2, 11.875), Vector3(0, 0, -1))
 	_sconce(r, Vector3(39.5, 2.2, 11.875), Vector3(0, 0, -1))
+	_moonlight(r, Vector3(0.9, 2.1, 10.5), 0.8, 7.0)
+	_moonlight(r, Vector3(43.1, 2.1, 10.5), 0.8, 7.0)
 
 
 func _corridors() -> void:
 	PropFactory.runner(b, "wcorr", Vector3(13.5, 0, 12.3), Vector3(13.5, 0, 29.6), 1.0)
 	PropFactory.runner(b, "ecorr", Vector3(30.5, 0, 12.3), Vector3(30.5, 0, 29.6), 1.0)
 	_hide("wcorr", "wardrobe", Vector3(14.875 - 0.31, 0, 27.4), -PI * 0.5, "wood_dark")
-	_sconce("wcorr", Vector3(12.125, 2.2, 21.0), Vector3(1, 0, 0), FlickerLight.Mode.CANDLE, 0.6)
-	_sconce("ecorr", Vector3(31.875, 2.2, 21.5), Vector3(-1, 0, 0), FlickerLight.Mode.FAULTY, 0.6)
+	_sconce("wcorr", Vector3(12.125, 2.2, 21.0), Vector3(1, 0, 0), FlickerLight.Mode.CANDLE, 1.1)
+	_sconce("wcorr", Vector3(14.875, 2.2, 16.4), Vector3(-1, 0, 0))
+	_sconce("wcorr", Vector3(12.125, 2.2, 27.6), Vector3(1, 0, 0), FlickerLight.Mode.FAULTY, 1.1)
+	_moonlight("wcorr", Vector3(13.5, 2.0, 29.1), 0.7, 6.5)
+	_sconce("ecorr", Vector3(31.875, 2.2, 21.5), Vector3(-1, 0, 0), FlickerLight.Mode.FAULTY, 1.1)
+	_sconce("ecorr", Vector3(29.125, 2.2, 16.6), Vector3(1, 0, 0))
+	_moonlight("ecorr", Vector3(30.5, 2.0, 29.1), 0.7, 6.5)
 	_portrait("wcorr", Vector3(14.875, 1.9, 15.0), Vector3(-1, 0, 0), 0.6, 0.8, "portrait_c")
 	_portrait("ecorr", Vector3(29.125, 1.9, 15.0), Vector3(1, 0, 0), 0.6, 0.8, "portrait_a")
 	_portrait("ecorr", Vector3(29.125, 1.9, 27.0), Vector3(1, 0, 0), 0.6, 0.8, "portrait_b")
@@ -604,6 +714,7 @@ func _corridors() -> void:
 	PropFactory.vase(b, "wcorr", Vector3(12.33, 0.85, 13.8))
 	PropFactory.table(b, "ecorr", PropFactory.at(Vector3(31.67, 0, 23.8), -PI * 0.5), 0.9, 0.36, 0.85, "wood_dark")
 	PropFactory.candle_stick(b, "ecorr", Vector3(31.67, 0.85, 23.8))
+	_candle("ecorr", Vector3(31.67, 0.85, 23.8), 0.8, 6.5, false)
 
 
 # ============================================================ grand hall
@@ -663,7 +774,15 @@ func _hall() -> void:
 	b.cyl(r, "iron_black", Vector3(22, 5.2, 25.5), 0.02, 0.02, 1.8, 4)
 	b.cyl(r, "brass", Vector3(22, 5.1, 25.5), 0.9, 0.8, 0.08, 16)
 	b.cyl(r, "brass", Vector3(22, 5.25, 25.5), 0.5, 0.45, 0.06, 12)
-	var cl := _light(r, Vector3(22, 4.8, 25.5), WARM, 1.35, 12.0, FlickerLight.Mode.CANDLE, "none")
+	var cl := _light(r, Vector3(22, 4.8, 25.5), WARM, 2.0, 15.0, FlickerLight.Mode.CANDLE, "none")
+	cl.priority = 0.7
+	# Lune par les deux hautes fenêtres de la façade, appliques le long des murs.
+	_moonlight(r, Vector3(17.5, 2.6, 28.9), 1.0, 9.0)
+	_moonlight(r, Vector3(26.5, 2.6, 28.9), 1.0, 9.0)
+	_sconce(r, Vector3(15.125, 2.5, 23.6), Vector3(1, 0, 0))
+	_sconce(r, Vector3(28.875, 2.5, 24.9), Vector3(-1, 0, 0), FlickerLight.Mode.FAULTY, 1.2)
+	_sconce(r, Vector3(15.125, 2.4, 14.4), Vector3(1, 0, 0), FlickerLight.Mode.CANDLE, 1.0)
+	_sconce(r, Vector3(28.875, 2.4, 15.2), Vector3(-1, 0, 0), FlickerLight.Mode.CANDLE, 1.0)
 	for k: int in range(8):
 		var a := TAU * float(k) / 8.0
 		var cp := Vector3(22 + cos(a) * 0.85, 5.18, 25.5 + sin(a) * 0.85)
@@ -709,7 +828,10 @@ func _salon() -> void:
 	_note(r, "madeleine_journal_1", "book", Vector3(39.4, 0.66, 19.6), 0.6)
 	b.cyl(r, "brass", Vector3(33.0, 0, 21.2), 0.18, 0.03, 1.55, 8)
 	b.cyl(r, "fabric_cream", Vector3(33.0, 1.5, 21.2), 0.28, 0.16, 0.3, 10, false, Color(0.9, 0.8, 0.6))
-	_light(r, Vector3(33.0, 1.55, 21.2), WARM, 0.8, 6.5, FlickerLight.Mode.CANDLE, "none")
+	_floor_lamp(r, Vector3(32.7, 0, 21.25))
+	_candelabra(r, Vector3(32.45, 0.94, 13.9), 1.2)
+	_moonlight(r, Vector3(43.1, 2.2, 13.8), 0.8, 7.5)
+	_moonlight(r, Vector3(43.1, 2.2, 20.2), 0.8, 7.5)
 	_hide(r, "closet", Vector3(35.6, 0, 21.875 - 0.31), PI, "wood_med", "", 0.95)
 	_portrait(r, Vector3(43.5, 2.3, 17.0), Vector3(-1, 0, 0), 0.7, 0.9, "portrait_c")
 	PropFactory.sheet_furniture(b, r, PropFactory.at(Vector3(37.8, 0, 21.4), PI), 1.6, 0.9, 0.6)
@@ -734,7 +856,8 @@ func _lise() -> void:
 	PropFactory.nightstand(b, r, PropFactory.at(Vector3(37.55, 0, 24.1), -PI * 0.5), "wood_light")
 	_note(r, "carte_anniversaire", "card", Vector3(37.5, 0.6, 24.0), -PI * 0.5)
 	b.sphere(r, "glass_stained", Vector3(37.62, 0.68, 24.3), Vector3(0.07, 0.08, 0.07), Color(1.4, 1.0, 1.0))
-	_light(r, Vector3(37.5, 0.8, 24.3), Color(1.0, 0.7, 0.75), 0.45, 4.0, FlickerLight.Mode.CANDLE, "none")
+	_light(r, Vector3(37.5, 0.8, 24.3), Color(1.0, 0.7, 0.75), 0.6, 6.0, FlickerLight.Mode.CANDLE, "none")
+	_moonlight(r, Vector3(35.0, 2.0, 29.1), 0.6, 6.5)
 	_hide(r, "wardrobe", Vector3(34.0, 0, 22.125 + 0.31), 0.0, "wood_light")
 	# Boîte à musique.
 	PropFactory.table(b, r, PropFactory.at(Vector3(36.9, 0, 29.4)), 0.8, 0.5, 0.62, "wood_light")
@@ -792,7 +915,9 @@ func _servant() -> void:
 	_note(r, "carnet_gaspard", "book", Vector3(42.8, 0.79, 22.45), 0.3)
 	b.cyl(r, "brass", Vector3(43.5, 0.78, 22.4), 0.06, 0.05, 0.05, 8)
 	b.cyl(r, "glass_stained", Vector3(43.5, 0.83, 22.4), 0.05, 0.04, 0.14, 8, false, Color(1.5, 1.2, 0.8))
-	_light(r, Vector3(43.5, 1.05, 22.45), WARM, 0.6, 5.0, FlickerLight.Mode.CANDLE, "flame")
+	_light(r, Vector3(43.5, 1.05, 22.45), WARM, 0.7, 7.0, FlickerLight.Mode.CANDLE, "flame")
+	_candle(r, Vector3(38.4, 0.59, 27.05), 0.6, 6.5)
+	_moonlight(r, Vector3(43.1, 2.0, 26.0), 0.55, 6.5)
 	PropFactory.washbasin(b, r, PropFactory.at(Vector3(43.6, 0, 28.6), -PI * 0.5))
 	b.box(r, "wood_raw", Vector3(43.85, 1.8, 24.5), Vector3(0.04, 0.03, 1.0), 0.0, false)
 	b.box(r, "cloth_black", Vector3(43.8, 1.4, 24.5), Vector3(0.05, 0.8, 0.5), 0.0, false)

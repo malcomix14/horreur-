@@ -282,6 +282,7 @@ func _fx_face_flash() -> bool:
 func _fx_lights_out(duration: float) -> bool:
 	var p := world.player
 	var n := world.lights.blackout(p.global_position, 16.0, duration)
+	world.dim_ambient(0.45, duration)
 	p.flashlight.flicker(minf(duration * 0.5, 1.8))
 	AudioManager.play_2d("static", -8.0)
 	var _delay_tw1 := create_tween()
@@ -394,6 +395,7 @@ func _fx_apparition(anchor: String, duration: float) -> bool:
 func _fx_blackout_breath(duration: float) -> void:
 	var p := world.player
 	world.lights.blackout(p.global_position, 20.0, duration)
+	world.dim_ambient(0.35, duration)
 	p.flashlight.flicker(duration * 0.8)
 	AudioManager.play_3d("breath_monster", p.eye_position() + p.global_basis.z * 0.7, 6.0, 1.0, 10.0, 2.0)
 	var _delay_tw3 := create_tween()
@@ -406,5 +408,6 @@ func _fx_blackout_breath(duration: float) -> void:
 func _fx_house_scream() -> void:
 	var p := world.player
 	world.lights.blackout(p.global_position, 60.0, 1.4)
+	world.dim_ambient(0.5, 1.4)
 	p.flashlight.flicker(1.2)
 	AudioManager.play_2d("monster_scream", -3.0, 0.75)

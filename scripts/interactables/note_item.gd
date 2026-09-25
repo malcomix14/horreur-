@@ -5,6 +5,7 @@ extends Interactable
 var note_id: String = ""
 var scare_on_close: String = ""
 var on_read: Callable = Callable()
+var _glint: MeshInstance3D
 
 
 ## kind : "paper", "book", "card", "drawing", "newspaper"
@@ -27,11 +28,20 @@ func setup(p_note_id: String, kind: String = "paper") -> void:
 	var mi := make_mesh(b)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_detect_box(Vector3(0.36, 0.12, 0.4), Vector3(0, 0.04, 0))
+	# Reflet froid et discret tant que le document n'a pas été lu.
+	_glint = add_glint(0.08 if kind != "card" else 0.14, true)
+
+
+func _ready() -> void:
+	if _glint != null:
+		_glint.visible = not GameManager.notes_read.has(note_id)
 
 
 func interact(_player: Player) -> void:
 	AudioManager.play_2d("paper", -4.0)
 	GameManager.mark_note_read(note_id)
+	if _glint != null:
+		_glint.visible = false
 	if scare_on_close != "":
 		var trig := scare_on_close
 		scare_on_close = ""

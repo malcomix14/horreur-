@@ -12,6 +12,7 @@ var _nav_blocker: StaticBody3D
 
 func setup() -> void:
 	shelf_body = AnimatableBody3D.new()
+	shelf_body.sync_to_physics = false
 	shelf_body.collision_layer = Layers.WORLD
 	shelf_body.collision_mask = 0
 	add_child(shelf_body)

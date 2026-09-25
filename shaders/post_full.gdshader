@@ -3,7 +3,7 @@ shader_type canvas_item;
 // vignette, grain de pellicule, flash rouge de peur. Une seule lecture d'écran.
 
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
-uniform float vignette_strength = 0.55;
+uniform float vignette_strength = 0.36;
 uniform float grain_amount = 0.04;
 uniform float aberration = 0.0015;
 uniform float fear = 0.0;

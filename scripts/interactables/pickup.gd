@@ -9,6 +9,7 @@ var checkpoint: bool = false
 var glint: bool = false
 var pickup_message: String = ""
 var _halo: MeshInstance3D
+var _halo_height: float = 0.05
 
 
 func setup(p_item: String, p_save_id: String, p_amount: int = 1) -> void:
@@ -23,8 +24,8 @@ func setup(p_item: String, p_save_id: String, p_amount: int = 1) -> void:
 	var aabb := mi.mesh.get_aabb()
 	var size := aabb.size + Vector3(0.12, 0.1, 0.12)
 	add_detect_box(size, aabb.get_center())
-	if item_id.begins_with("key_") or item_id == "register":
-		glint = true
+	_halo_height = aabb.end.y + 0.02
+	glint = true
 
 
 func _ready() -> void:
@@ -32,21 +33,13 @@ func _ready() -> void:
 		queue_free()
 		return
 	if glint:
-		# Petit reflet discret pour aider à repérer les objets importants dans le noir.
-		_halo = MeshInstance3D.new()
-		var q := QuadMesh.new()
-		q.size = Vector2(0.14, 0.14)
-		_halo.mesh = q
-		_halo.material_override = Assets.mat("halo")
-		_halo.position = Vector3(0, 0.03, 0)
-		_halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(_halo)
+		# Reflet discret pour repérer les objets utiles dans la pénombre.
+		_halo = add_glint(_halo_height)
+		_halo.visible = active
 
 
 func _process(_delta: float) -> void:
 	if _halo != null:
-		var t := float(Time.get_ticks_msec()) * 0.001
-		_halo.scale = Vector3.ONE * (0.6 + 0.4 * absf(sin(t * 1.7 + position.x)))
 		_halo.visible = active
 
 

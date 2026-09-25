@@ -74,14 +74,16 @@ Dans **Options** (menu principal ou pause) :
 - Bouton **« Préréglage PC faible »** : résolution 3D 60 %, qualité Basse, ombres de la lampe désactivées,
   30 FPS max, compteur FPS affiché. C'est le meilleur point de départ si ça rame.
 - **Résolution 3D** (40–100 %) : le levier le plus efficace. 60–75 % reste très lisible grâce au grain.
-- **Qualité** : *Basse* = post-traitement sans lecture d'écran, pas de poussière, 4 lumières actives max, brouillard plus dense
-  (moins de géométrie visible) ; *Moyenne* = 6 lumières, grain/étalonnage ; *Haute* = 8 lumières, aberration chromatique.
+- **Qualité** : *Basse* = post-traitement sans lecture d'écran, pas de poussière, 6 lampes actives max, brouillard plus dense
+  (moins de géométrie visible) ; *Moyenne* = 8 lampes, grain/étalonnage ; *Haute* = 10 lampes, aberration chromatique.
+- **Luminosité** (50–200 %) : règle la lumière ambiante, le clair de lune et l'exposition. Si vous distinguez mal le décor
+  sur votre écran, montez-la un peu ; le jeu reste sombre même à 130 %.
 - **Ombres de la lampe** : la seule lumière qui projette des ombres. La couper fait gagner beaucoup sur iGPU.
 - **Images/s max** : 30 stabilise la machine et évite la surchauffe ; 60 si elle suit.
 - **Plein écran** et **VSync** : à tester chez vous (la VSync peut limiter à 60).
 
-Mesures faites sur le rendu Compatibility (vues les plus chargées : galerie de 44 m, grand hall) : environ 450 appels de dessin
-sans l'ombre de la lampe, ~600 avec (dont une pré-passe de profondeur qui double les appels mais évite de calculer l'éclairage
+Mesures faites sur le rendu Compatibility (vues les plus chargées : galerie de 44 m, grand hall) : environ 480–520 appels de dessin
+sans l'ombre de la lampe, ~660–690 avec (dont une pré-passe de profondeur qui double les appels mais évite de calculer l'éclairage
 des pixels cachés), 75 000 à 140 000 triangles. L'ombre de la lampe coûte donc ~40 % d'appels en plus : c'est la première
 chose à couper si ça rame.
 
@@ -90,6 +92,24 @@ partagent une même surface, teinte cuite dans les sommets), textures
 générées en 64–256 px, occlusion culling par boîtes sur les murs, lumières d'ambiance sans ombres activées seulement
 près du joueur, animation du monstre coupée quand il est loin, fausse occlusion ambiante « cuite » dans les couleurs de sommets,
 rais de lune et halos en géométrie additive (pas de volumétrique).
+
+### Éclairage : sombre mais jouable
+Le manoir est volontairement sombre, mais **aucune zone n'est totalement noire**, même lampe torche éteinte :
+- une **lumière ambiante froide** faible mais présente partout, un **clair de lune diffus** (lumière directionnelle
+  sans ombre, qui distingue murs, sols et meubles par leur orientation) et un **brouillard bleuté** qui détache les
+  silhouettes au loin au lieu de les noyer dans le noir ;
+- environ **70 sources crédibles** : appliques à bougie, ampoules défaillantes, candélabres, bougies sur les meubles,
+  lanternes et soupiraux dans les caves, grands cierges dans la chapelle, lampadaire du salon, et un **clair de lune froid**
+  derrière la plupart des fenêtres. Les pièces gardent des zones chaudes et des coins plus sombres ;
+- les **objets utiles** (clés, fusible, manivelle, piles, allumettes…) ont un petit **reflet pulsant**, et les documents
+  pas encore lus un reflet froid plus discret ;
+- seule la lampe torche projette des ombres (coût GPU) ; les lampes du manoir s'allument et s'éteignent en fondu
+  selon la distance, en privilégiant celles de la pièce où vous êtes.
+
+Relevé automatique (lampe torche éteinte, grille de points tous les 2,5 m, 4 directions, image finale 0–255) :
+luminosité moyenne par pièce passée de **0,1–14** (quasi noir) à **28–68**. Les caves sans courant restent les plus sombres
+(~30), la salle de bain carrelée la plus claire (~68). Pour tout éclaircir ou assombrir d'un coup :
+`AMBIENT_ENERGY` / `MOON_FILL_ENERGY` dans `scripts/core/game_world.gd` et `ENERGY_SCALE` dans `scripts/level/flicker_light.gd`.
 
 ## 6. Personnaliser
 
@@ -167,6 +187,8 @@ déplacement = `NavigationAgent3D` sur un navmesh calculé au chargement.
 
 Pour relancer ce test : `godot --path . --fixed-fps 60 -- --autotest` (ajouter `--headless` pour ne rien afficher).
 Pour mesurer les appels de dessin sur votre machine : `godot --path . -- --autotest --perf` (lignes `PERF` dans la console).
+Pour relever la luminosité de chaque pièce (lampe torche éteinte) : `godot --path . --fixed-fps 60 -- --autotest --lumi`
+(lignes `LUMI` ; ajouter `--shots=/un/dossier` pour enregistrer les vues les plus sombres).
 
 **Non vérifié** (à tester chez vous) : les performances réelles sur votre i3 N305, le rendu exact sur un vrai GPU Intel,
 le son (la machine de test n'avait pas de carte son : les sons ont été générés et joués mais pas écoutés),

@@ -18,6 +18,7 @@ func setup(width: float, height: float) -> void:
 		pivot.position = Vector3(-width * 0.5 + 0.01 if left else width * 0.5 - 0.01, 0, 0)
 		add_child(pivot)
 		var body := AnimatableBody3D.new()
+		body.sync_to_physics = false
 		body.collision_layer = Layers.DOORS | Layers.INTERACT
 		body.collision_mask = 0
 		var sx := 1.0 if left else -1.0

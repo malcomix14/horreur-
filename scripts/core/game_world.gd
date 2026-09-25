@@ -4,6 +4,11 @@ extends Node3D
 ## (lumières, screamers, ambiance), gère l'environnement, les points de sauvegarde,
 ## l'éveil du monstre et la cinématique de fin.
 
+const AMBIENT_COLOR: Color = Color(0.5, 0.55, 0.72)
+const AMBIENT_ENERGY: float = 0.92
+const FOG_COLOR: Color = Color(0.1, 0.11, 0.14)
+const MOON_FILL_ENERGY: float = 0.3
+
 var layout: ManorLayout
 var builder: ManorBuilder
 var nav_region: NavigationRegion3D
@@ -15,6 +20,7 @@ var ambience: AmbienceDirector
 var env: Environment
 var anchors: Dictionary = {}
 var exterior_light: OmniLight3D
+var moon_fill: DirectionalLight3D
 var dust: CPUParticles3D
 var ready_to_play: bool = false
 
@@ -22,7 +28,7 @@ var _save: Dictionary = {}
 var _awaken_timer: float = -1.0
 var _no_lamp_timer: float = 0.0
 var _ending: bool = false
-var _base_ambient: float = 0.13
+var _base_ambient: float = AMBIENT_ENERGY
 var _env_tween: Tween
 
 
@@ -33,6 +39,7 @@ func build(save: Dictionary, progress: Callable) -> void:
 	_build_environment()
 	lights = LightManager.new()
 	lights.name = "LightManager"
+	lights.layout = layout
 	add_child(lights)
 	nav_region = NavigationRegion3D.new()
 	nav_region.name = "Level"
@@ -65,6 +72,7 @@ func build(save: Dictionary, progress: Callable) -> void:
 	_spawn_monster()
 	lights.player = player
 	lights.init_power_state()
+	lights.refresh_now()
 	scares = JumpscareManager.new()
 	scares.name = "Jumpscares"
 	scares.world = self
@@ -107,30 +115,46 @@ func _progress(progress: Callable, ratio: float, text: String) -> void:
 
 # ============================================================ environnement
 
+## Éclairage de base « sombre mais lisible » : une lumière ambiante froide faible mais présente
+## partout (aucune zone totalement noire), un clair de lune diffus directionnel sans ombre
+## (les murs, sols et meubles se distinguent par leur orientation) et un brouillard bleuté qui
+## détache les silhouettes au loin. Les lampes du manoir (FlickerLight) créent les zones chaudes.
 func _build_environment() -> void:
 	var we := WorldEnvironment.new()
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.004, 0.005, 0.008)
+	env.background_color = Color(0.01, 0.012, 0.018)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.36, 0.4, 0.55)
+	env.ambient_light_color = AMBIENT_COLOR
 	env.ambient_light_energy = _base_ambient
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_white = 6.0
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.015, 0.017, 0.024)
+	env.fog_light_color = FOG_COLOR
 	env.fog_light_energy = 1.0
 	env.fog_density = 0.045
 	env.fog_sky_affect = 0.0
 	we.environment = env
 	add_child(we)
+	moon_fill = DirectionalLight3D.new()
+	moon_fill.name = "MoonFill"
+	moon_fill.light_color = Color(0.62, 0.7, 1.0)
+	moon_fill.light_energy = MOON_FILL_ENERGY
+	moon_fill.light_specular = 0.0
+	moon_fill.shadow_enabled = false
+	moon_fill.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	moon_fill.rotation = Vector3(deg_to_rad(-40.0), deg_to_rad(32.0), 0.0)
+	add_child(moon_fill)
 
 
 func _apply_settings() -> void:
 	var br := Settings.brightness
-	_base_ambient = 0.13 * br
+	_base_ambient = AMBIENT_ENERGY * br
 	env.ambient_light_energy = _base_ambient
+	env.fog_light_color = FOG_COLOR * lerpf(0.7, 1.4, clampf((br - 0.5) / 1.5, 0.0, 1.0))
 	env.tonemap_exposure = lerpf(0.85, 1.35, clampf((br - 0.5) / 1.5, 0.0, 1.0))
+	if moon_fill != null:
+		moon_fill.light_energy = MOON_FILL_ENERGY * br
 	match Settings.quality:
 		Settings.Quality.LOW:
 			env.fog_density = 0.05
@@ -172,11 +196,27 @@ func _on_lightning(strength: float) -> void:
 	if _env_tween != null and _env_tween.is_valid():
 		_env_tween.kill()
 	_env_tween = create_tween()
-	var peak := _base_ambient + 0.5 * strength
+	var peak := _base_ambient * (1.0 + 2.2 * strength)
 	_env_tween.tween_property(env, "ambient_light_energy", peak, 0.05)
-	_env_tween.tween_property(env, "ambient_light_energy", _base_ambient + 0.1, 0.12)
+	_env_tween.tween_property(env, "ambient_light_energy", _base_ambient * 1.3, 0.12)
 	_env_tween.tween_property(env, "ambient_light_energy", peak * 0.8, 0.06)
 	_env_tween.tween_property(env, "ambient_light_energy", _base_ambient, 0.6)
+
+
+## Assombrit brièvement l'ambiance (coupures de courant des screamers) sans jamais aller
+## jusqu'au noir total, puis revient progressivement à la normale.
+func dim_ambient(factor: float, duration: float) -> void:
+	if _env_tween != null and _env_tween.is_valid():
+		_env_tween.kill()
+	_env_tween = create_tween()
+	_env_tween.tween_property(env, "ambient_light_energy", _base_ambient * factor, 0.12)
+	_env_tween.tween_interval(maxf(0.0, duration - 0.9))
+	_env_tween.tween_property(env, "ambient_light_energy", _base_ambient, 0.8)
+	var moon_target := MOON_FILL_ENERGY * Settings.brightness
+	var mt := create_tween()
+	mt.tween_property(moon_fill, "light_energy", moon_target * factor, 0.12)
+	mt.tween_interval(maxf(0.0, duration - 0.9))
+	mt.tween_property(moon_fill, "light_energy", moon_target, 0.8)
 
 
 # ============================================================ joueur et monstre

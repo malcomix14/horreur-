@@ -48,6 +48,20 @@ func make_mesh(b: MeshBatcher, parent: Node3D = null) -> MeshInstance3D:
 	return mi
 
 
+## Petit reflet pulsant qui signale un objet utile dans la pénombre (sans lumière dynamique).
+func add_glint(height: float, dim: bool = false) -> MeshInstance3D:
+	var g := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.24, 0.24) if dim else Vector2(0.36, 0.36)
+	g.mesh = q
+	g.material_override = Assets.mat("glint_dim" if dim else "glint")
+	g.position = Vector3(0, height, 0)
+	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	g.visibility_range_end = 16.0
+	add_child(g)
+	return g
+
+
 func say(text: String, duration: float = 3.0) -> void:
 	Events.message_requested.emit(text, duration)
 

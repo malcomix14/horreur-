@@ -37,6 +37,9 @@ func setup(w: float, h: float, double_leaf: bool, wood: String = "wood_dark") ->
 		pivot.position = Vector3(-width * 0.5 + 0.01 if left else width * 0.5 - 0.01, 0.0, 0.0)
 		add_child(pivot)
 		var body := AnimatableBody3D.new()
+		# Sans synchronisation physique : le battant suit son pivot (et la position de la porte
+		# fixée après l'ajout à la scène) ; sinon il reste figé à l'origine du monde.
+		body.sync_to_physics = false
 		body.collision_layer = Layers.DOORS
 		body.collision_mask = 0
 		var cx := lw * 0.5 if left else -lw * 0.5

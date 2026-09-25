@@ -1,7 +1,7 @@
 shader_type canvas_item;
 // Post-traitement « PC faible » : aucune lecture d'écran, simple voile (vignette + grain).
 
-uniform float vignette_strength = 0.55;
+uniform float vignette_strength = 0.36;
 uniform float grain_amount = 0.03;
 uniform float fear = 0.0;
 uniform float red_flash = 0.0;

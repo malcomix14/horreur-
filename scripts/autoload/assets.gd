@@ -158,6 +158,14 @@ func _std(key: String, tex_name: String, color: Color, rough: float, uv: float =
 	return m
 
 
+func _glint(key: String, tint: Color, strength: float) -> void:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/glint.gdshader") as Shader
+	m.set_shader_parameter("tint", tint)
+	m.set_shader_parameter("strength", strength)
+	_materials[key] = m
+
+
 func _unshaded(key: String, tex_name: String, color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -172,11 +180,11 @@ func _unshaded(key: String, tex_name: String, color: Color) -> StandardMaterial3
 func _build_materials() -> void:
 	# --- sols
 	_std("floor_parquet", "parquet", Color(1.0, 0.95, 0.9), 0.45, 0.9, 0.5)
-	_std("floor_parquet_dark", "parquet", Color(0.62, 0.55, 0.52), 0.5, 0.9, 0.5)
+	_std("floor_parquet_dark", "parquet", Color(0.82, 0.74, 0.68), 0.5, 0.9, 0.5)
 	_std("floor_planks", "planks", Color(0.9, 0.88, 0.85), 0.8, 0.6)
 	_std("floor_marble", "marble", Color(1, 1, 1), 0.22, 0.42, 0.6)
 	_std("floor_tiles", "tiles_check", Color(1, 1, 1), 0.4, 0.5, 0.55)
-	_std("floor_bath", "tiles_small", Color(0.95, 0.97, 0.97), 0.35, 0.6, 0.55)
+	_std("floor_bath", "tiles_small", Color(0.7, 0.72, 0.72), 0.35, 0.6, 0.55)
 	_std("floor_stone", "flagstone", Color(0.9, 0.9, 0.88), 0.85, 0.33)
 	_std("floor_chapel", "flagstone", Color(1.1, 1.05, 1.0), 0.75, 0.3)
 	# --- murs
@@ -185,38 +193,38 @@ func _build_materials() -> void:
 	_std("wp_blue", "wallpaper", Color(0.46, 0.55, 0.72), 0.8, 1.4)
 	_std("wp_olive", "wallpaper", Color(0.68, 0.66, 0.46), 0.8, 1.4)
 	_std("wp_pink", "wallpaper", Color(0.88, 0.66, 0.66), 0.8, 1.6)
-	_std("wp_burgundy", "wallpaper", Color(0.55, 0.28, 0.33), 0.8, 1.4)
+	_std("wp_burgundy", "wallpaper", Color(0.62, 0.32, 0.37), 0.8, 1.4)
 	_std("wp_gold", "wallpaper", Color(0.8, 0.68, 0.46), 0.75, 1.1)
 	_std("wp_teal", "wallpaper", Color(0.4, 0.6, 0.6), 0.8, 1.4)
-	_std("plaster", "plaster", Color(0.92, 0.9, 0.86), 0.9, 0.5)
-	_std("plaster_dirty", "plaster", Color(0.72, 0.68, 0.6), 0.9, 0.5)
+	_std("plaster", "plaster", Color(0.6, 0.58, 0.55), 0.9, 0.5)
+	_std("plaster_dirty", "plaster", Color(0.5, 0.47, 0.41), 0.9, 0.5)
 	_std("stone_wall", "stone_wall", Color(0.95, 0.95, 0.95), 0.9, 0.55)
-	_std("tiles_wall", "tiles_small", Color(0.9, 0.95, 0.93), 0.3, 0.6, 0.6)
+	_std("tiles_wall", "tiles_small", Color(0.6, 0.64, 0.63), 0.3, 0.6, 0.6)
 	_std("wainscot", "wood_panel", Color(0.95, 0.9, 0.85), 0.55, 1.0, 0.45)
-	_std("wainscot_dark", "wood_panel", Color(0.6, 0.52, 0.5), 0.55, 1.0, 0.45)
-	_std("wainscot_white", "wood_panel", Color(2.0, 2.1, 2.2), 0.6, 1.0)
+	_std("wainscot_dark", "wood_panel", Color(0.82, 0.72, 0.66), 0.55, 1.0, 0.45)
+	_std("wainscot_white", "wood_panel", Color(1.6, 1.65, 1.7), 0.6, 1.0)
 	_std("secret_wall", "secret_wall", Color(1, 1, 1), 0.9, 0.4)
 	_std("exterior", "stone_wall", Color(0.4, 0.4, 0.42), 0.95, 0.5)
 	# --- plafonds
-	_std("ceiling", "plaster", Color(0.8, 0.78, 0.74), 0.95, 0.4)
-	_std("ceiling_dark", "plaster", Color(0.45, 0.42, 0.38), 0.95, 0.4)
+	_std("ceiling", "plaster", Color(0.58, 0.56, 0.52), 0.95, 0.4)
+	_std("ceiling_dark", "plaster", Color(0.56, 0.53, 0.49), 0.95, 0.4)
 	_std("ceiling_wood", "planks", Color(0.55, 0.5, 0.45), 0.9, 0.5)
 	_std("ceiling_stone", "stone_wall", Color(0.6, 0.6, 0.6), 0.95, 0.5)
 	# --- boiseries et mobilier
-	_std("trim", "wood", Color(0.45, 0.33, 0.26), 0.5, 1.5, 0.5)
+	_std("trim", "wood", Color(0.58, 0.44, 0.35), 0.5, 1.5, 0.5)
 	_std("trim_white", "plaster", Color(0.95, 0.93, 0.88), 0.7, 1.0)
-	_std("wood_dark", "wood", Color(0.45, 0.36, 0.3), 0.5, 1.2, 0.5)
+	_std("wood_dark", "wood", Color(0.6, 0.49, 0.41), 0.5, 1.2, 0.5)
 	_std("wood_med", "wood", Color(0.85, 0.75, 0.65), 0.55, 1.2, 0.5)
 	_std("wood_light", "wood", Color(1.2, 1.1, 0.95), 0.6, 1.2)
 	_std("wood_black", "wood", Color(0.2, 0.17, 0.16), 0.45, 1.2, 0.55)
 	_std("wood_raw", "planks", Color(0.9, 0.85, 0.8), 0.9, 1.0)
 	_std("fabric_red", "fabric", Color(0.5, 0.1, 0.1), 0.95, 3.0, 0.2)
-	_std("fabric_green", "fabric", Color(0.18, 0.3, 0.2), 0.95, 3.0, 0.2)
-	_std("fabric_blue", "fabric", Color(0.18, 0.22, 0.38), 0.95, 3.0, 0.2)
+	_std("fabric_green", "fabric", Color(0.24, 0.38, 0.27), 0.95, 3.0, 0.2)
+	_std("fabric_blue", "fabric", Color(0.24, 0.29, 0.46), 0.95, 3.0, 0.2)
 	_std("fabric_cream", "fabric", Color(0.8, 0.76, 0.66), 0.95, 3.0, 0.2)
 	_std("fabric_pink", "fabric", Color(0.8, 0.55, 0.58), 0.95, 3.0, 0.2)
 	_std("sheet", "fabric", Color(0.78, 0.77, 0.74), 1.0, 1.5, 0.2)
-	_std("leather", "fabric", Color(0.25, 0.14, 0.09), 0.6, 2.0, 0.4)
+	_std("leather", "fabric", Color(0.32, 0.19, 0.13), 0.6, 2.0, 0.4)
 	_std("metal", "metal", Color(0.55, 0.55, 0.55), 0.45, 2.0, 0.6)
 	_std("iron_black", "metal", Color(0.18, 0.18, 0.2), 0.5, 2.0, 0.5)
 	var brass := _std("brass", "metal", Color(0.85, 0.65, 0.3), 0.35, 2.0, 0.7)
@@ -279,6 +287,12 @@ func _build_materials() -> void:
 	halo.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	halo.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	halo.vertex_color_use_as_albedo = false
+	# Abat-jour qui luit doucement (lampadaires).
+	var shade := _unshaded("lampshade", "fabric", Color(0.85, 0.6, 0.36))
+	shade.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# Reflets des objets utiles : chaud pour les objets, froid et plus discret pour les documents.
+	_glint("glint", Color(1.0, 0.86, 0.6), 1.15)
+	_glint("glint_dim", Color(0.8, 0.86, 1.0), 0.7)
 	var shaft := _unshaded("moon_shaft", "", Color(0.35, 0.45, 0.7, 1.0))
 	shaft.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	shaft.blend_mode = BaseMaterial3D.BLEND_MODE_ADD

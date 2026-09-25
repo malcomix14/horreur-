@@ -117,19 +117,19 @@ func apply_video() -> void:
 func max_active_lights() -> int:
 	match quality:
 		Quality.LOW:
-			return 4
+			return 6
 		Quality.HIGH:
-			return 8
-	return 6
+			return 10
+	return 8
 
 
 func light_cull_radius() -> float:
 	match quality:
 		Quality.LOW:
-			return 14.0
+			return 16.0
 		Quality.HIGH:
-			return 24.0
-	return 18.0
+			return 26.0
+	return 20.0
 
 
 func camera_far() -> float:

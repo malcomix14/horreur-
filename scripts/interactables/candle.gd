@@ -45,7 +45,7 @@ func setup(p_role: String, plaque_text: String, p_puzzle: CandlePuzzle) -> void:
 	lab.shaded = true
 	add_child(lab)
 	light = FlickerLight.new()
-	light.setup(Color(1.0, 0.7, 0.4), 0.9, 4.5, FlickerLight.Mode.CANDLE)
+	light.setup(Color(1.0, 0.7, 0.4), 1.1, 6.5, FlickerLight.Mode.CANDLE)
 	light.position = Vector3(0, 1.75, 0)
 	light.glow_nodes = _flames.duplicate()
 	add_child(light)

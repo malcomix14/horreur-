@@ -126,6 +126,10 @@ func _run() -> void:
 		await _perf(w)
 		main.quit_game(0)
 		return
+	if OS.get_cmdline_user_args().has("--lumi"):
+		await _light_survey(w)
+		main.quit_game(0)
+		return
 	if OS.get_cmdline_user_args().has("--navonly"):
 		_log("=== RÉSULTAT : %d vérifications, %d échec(s) ===" % [_checks, _fails])
 		main.quit_game(0 if _fails == 0 else 1)
@@ -198,6 +202,158 @@ func _perf(w: GameWorld) -> void:
 			w.player.flashlight.light.shadow_enabled = bool(cf[3])
 			await _frames(6)
 			_log("PERF %-15s %-15s %s" % [str(arr[0]), str(cf[0]), _stats()])
+
+
+## Relevé de luminosité (développement) : grille de points dans chaque pièce, 4 directions,
+## lampe torche éteinte. Mesure la luminance moyenne, le 10e centile et la part de pixels
+## quasi noirs de l'image finale (post-traitement compris).
+func _light_survey(w: GameWorld) -> void:
+	w.monster.process_mode = Node.PROCESS_MODE_DISABLED
+	w.monster.visible = false
+	w.scares.process_mode = Node.PROCESS_MODE_DISABLED
+	w.ambience.process_mode = Node.PROCESS_MODE_DISABLED
+	main.hud.visible = false
+	w.player.flashlight.set_on(false)
+	var only := ""
+	var step := 2.5
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--rooms="):
+			only = a.substr(8)
+		if a.begins_with("--step="):
+			step = float(a.substr(7))
+	if OS.get_cmdline_user_args().has("--diagdoor"):
+		for dn: Node in _find_all(w, "Door").slice(0, 3):
+			for n2: Node in _find_all_class(dn, "MeshInstance3D"):
+				_log("  door %s leaf=%s body=%s" % [(dn as Node3D).global_position, (n2 as Node3D).global_position, (n2.get_parent() as Node3D).global_position])
+		var md := _find_one(w, "MainDoor") as MainDoor
+		_log("MainDoor %s visible=%s in_tree=%s" % [md.global_position, md.is_visible_in_tree(), md.is_inside_tree()])
+		for n: Node in _find_all_class(md, "MeshInstance3D"):
+			var mi := n as MeshInstance3D
+			_log("  mesh %s pos=%s vis=%s surf=%d aabb=%s" % [mi.get_path(), mi.global_position, mi.is_visible_in_tree(), mi.mesh.get_surface_count() if mi.mesh != null else -1, mi.get_aabb()])
+	if OS.get_cmdline_user_args().has("--noocc"):
+		get_viewport().use_occlusion_culling = false
+	if OS.get_cmdline_user_args().has("--nolights"):
+		for n: Node in get_tree().get_nodes_in_group("flicker_lights"):
+			(n as FlickerLight).switched_on = false
+		w.moon_fill.visible = false
+	for a2: String in OS.get_cmdline_user_args():
+		if a2.begins_with("--views="):
+			await _survey_views(w, a2.substr(8))
+			return
+	await _survey_pass(w, "courant coupé", only, step)
+	GameManager.set_flag("power_on", true)
+	Events.power_restored.emit("cellar")
+	await _survey_pass(w, "courant rétabli", "cellar_a,cellar_b" if only == "" else only, step)
+
+
+## Vues précises « x,y,z,cap;... » (cap en degrés) : capture + mesure, pour régler une zone.
+func _survey_views(w: GameWorld, spec: String) -> void:
+	var i := 0
+	for v: String in spec.split(";"):
+		var f := v.split(",")
+		if f.size() < 4:
+			continue
+		_place_player(Vector3(float(f[0]), float(f[1]) + 0.05, float(f[2])), deg_to_rad(float(f[3])), -0.08 if f.size() < 5 else float(f[4]))
+		w.lights.refresh_now()
+		await _frames(4)
+		var m := _measure()
+		_log("LUMI vue %d (%s) : moy %.1f  p10 %.0f  noir %.0f%%" % [i, v, m.x, m.y, m.z * 100.0])
+		if _shots_dir != "":
+			get_viewport().get_texture().get_image().save_png("%s/view_%d.png" % [_shots_dir, i])
+		i += 1
+
+
+func _survey_pass(w: GameWorld, label: String, only: String, step: float) -> void:
+	var map := w.nav_region.get_navigation_map()
+	var space := w.get_world_3d().direct_space_state
+	var worst_all := 999.0
+	var summary: Array[String] = []
+	for r: ManorLayout.RoomDef in w.layout.rooms:
+		if only != "" and not (r.id in only.split(",")):
+			continue
+		var pts: Array[Vector3] = []
+		var nx := maxi(1, int(round((r.rect.size.x - 1.8) / step)) + 1)
+		var nz := maxi(1, int(round((r.rect.size.y - 1.8) / step)) + 1)
+		for ix: int in range(nx):
+			for iz: int in range(nz):
+				var fx := 0.5 if nx == 1 else float(ix) / float(nx - 1)
+				var fz := 0.5 if nz == 1 else float(iz) / float(nz - 1)
+				var x := lerpf(r.rect.position.x + 0.9, r.rect.end.x - 0.9, fx)
+				var z := lerpf(r.rect.position.y + 0.9, r.rect.end.y - 0.9, fz)
+				var raw := Vector3(x, r.floor_y, z)
+				var near_p := NavigationServer3D.map_get_closest_point(map, raw)
+				if Vector2(near_p.x - x, near_p.z - z).length() < 0.7 and absf(near_p.y - r.floor_y) < 0.5:
+					pts.append(Vector3(near_p.x, r.floor_y + 0.05, near_p.z))
+					continue
+				var q := PhysicsPointQueryParameters3D.new()
+				q.collision_mask = Layers.WORLD
+				q.position = raw + Vector3(0, 1.2, 0)
+				if space.intersect_point(q, 1).is_empty():
+					pts.append(raw + Vector3(0, 0.05, 0))
+		var means: Array[float] = []
+		var worst := 999.0
+		var worst_desc := ""
+		var max_black := 0.0
+		var bad := 0
+		var shot_i := 0
+		for pnt: Vector3 in pts:
+			for k: int in range(4):
+				var yaw := float(k) * PI * 0.5
+				_place_player(pnt, yaw, -0.08)
+				w.lights.refresh_now()
+				await _frames(3)
+				var m := _measure()
+				means.append(m.x)
+				max_black = maxf(max_black, m.z)
+				if m.x < 30.0 or m.z > 0.25:
+					bad += 1
+				if m.x < worst:
+					worst = m.x
+					worst_desc = "(%.1f, %.1f) cap %d°" % [pnt.x, pnt.z, k * 90]
+					if _shots_dir != "":
+						var img := get_viewport().get_texture().get_image()
+						img.save_png("%s/lumi_%s_worst.png" % [_shots_dir, r.id])
+				if _shots_dir != "" and k == 0 and shot_i < 2 and pts.size() > 0 and (pnt == pts[0] or pnt == pts[int(pts.size() * 0.5)]):
+					var img2 := get_viewport().get_texture().get_image()
+					img2.save_png("%s/lumi_%s_%d.png" % [_shots_dir, r.id, shot_i])
+					shot_i += 1
+		var avg := 0.0
+		for v: float in means:
+			avg += v
+		avg /= maxf(1.0, float(means.size()))
+		worst_all = minf(worst_all, worst)
+		var line := "%-9s vues %3d  moy %5.1f  pire %5.1f %s  noir max %4.0f%%  vues sombres %d" % [r.id, means.size(), avg, worst, worst_desc, max_black * 100.0, bad]
+		summary.append(line)
+		_log("LUMI [%s] %s" % [label, line])
+	_log("LUMI [%s] pire vue globale : %.1f" % [label, worst_all])
+
+
+## Luminance de l'image affichée : x = moyenne (0-255), y = 10e centile, z = part de pixels < 14.
+func _measure() -> Vector3:
+	var img := get_viewport().get_texture().get_image()
+	img.convert(Image.FORMAT_RGB8)
+	img.resize(160, 90, Image.INTERPOLATE_TRILINEAR)
+	var data := img.get_data()
+	var hist: Array[int] = []
+	hist.resize(256)
+	hist.fill(0)
+	var total := 0.0
+	var n := int(data.size() / 3.0)
+	for i: int in range(n):
+		var l := int(0.299 * float(data[i * 3]) + 0.587 * float(data[i * 3 + 1]) + 0.114 * float(data[i * 3 + 2]))
+		hist[l] += 1
+		total += float(l)
+	var acc := 0
+	var p10 := 0
+	for v: int in range(256):
+		acc += hist[v]
+		if acc >= int(n * 0.1):
+			p10 = v
+			break
+	var black := 0
+	for v2: int in range(14):
+		black += hist[v2]
+	return Vector3(total / float(n), float(p10), float(black) / float(n))
 
 
 func _compile_all(dir: String) -> void:
